@@ -1,0 +1,12 @@
+@font-face {
+	font-family: novecento-wide-medium;
+	src: url(NovecentoWideMedium.ttf);
+}
+
+span {
+	font-family: novecento-wide-medium;
+}
+
+.display-grid {
+	display: grid;
+}
