@@ -77,7 +77,7 @@ fn HomePage() -> impl IntoView {
             id: 5,
         },
     ];
-    let (cards, set_cards) = create_signal(cards);
+    let (cards, _set_cards) = create_signal(cards);
 
     view! {
         <h1>"Welcome to Leptos!"</h1>

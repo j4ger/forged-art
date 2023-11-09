@@ -2,12 +2,16 @@ use crate::common::card::{AuctionType, Card, CardColor};
 use leptos::*;
 
 #[component]
-pub(crate) fn CardView(card: Card) -> impl IntoView {
+pub(crate) fn CardView(card: Card, #[prop(optional)] selectable: bool) -> impl IntoView {
+    let (selectable, _) = create_signal(selectable);
     view! {
-        <div class="w-40 h-50 rd-2 border-2 cursor-grabbing transition-all
-            shadow-xl z-0 rotate--5
+        <div class="w-40 h-50 rd-2 border-2 transition-all
+            shadow-xl z-0
             hover:shadow-2xl hover:z-1 hover:rotate-0 hover:scale-110"
-            class=card.color.comp_bg() draggable="true">
+            class=("cursor-grabbing", selectable)
+            class=card.color.comp_bg()
+            prop:draggable=selectable
+        >
             <div class="flex flex-justify-center">
                 <img src="abstract.jpg" class="aspect-square w-40 h-40 rd-t-2 pointer-events-none" />
             </div>

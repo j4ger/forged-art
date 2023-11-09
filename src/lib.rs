@@ -1,13 +1,13 @@
 use cfg_if::cfg_if;
-pub(crate) mod client;
-pub(crate) mod common;
-pub(crate) mod fileserv;
-pub(crate) mod server;
+pub mod client;
+pub mod common;
+pub mod fileserv;
+pub mod server;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {
     use leptos::*;
     use wasm_bindgen::prelude::wasm_bindgen;
-    use crate::app::*;
+    use crate::client::app::*;
 
     #[wasm_bindgen]
     pub fn hydrate() {

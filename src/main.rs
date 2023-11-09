@@ -4,7 +4,7 @@ async fn main() {
     use axum::{routing::post, Router};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use mart::app::*;
+    use mart::client::app::*;
     use mart::fileserv::file_and_error_handler;
 
     simple_logger::init_with_level(log::Level::Debug).expect("couldn't initialize logging");

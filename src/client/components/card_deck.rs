@@ -5,13 +5,15 @@ use leptos::*;
 #[component]
 pub(crate) fn CardDeckView(cards: ReadSignal<Vec<Card>>) -> impl IntoView {
     view! {
-        <div class="h-full display-grid grid-cols-6">
+        <div class="h-full display-grid grid-cols-10">
             <For
                 each=cards
                 key=|card| card.id
                 let:card
             >
-                <CardView card=card/>
+                <div>
+                    <CardView card=card selectable=true/>
+                </div>
             </For>
         </div>
     }
