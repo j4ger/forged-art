@@ -1,7 +1,9 @@
 use crate::{
+    client::{
+        components::card_deck::CardDeckView,
+        error_template::{AppError, ErrorTemplate},
+    },
     common::card::{AuctionType, Card, CardColor},
-    components::card_deck::CardDeckView,
-    error_template::{AppError, ErrorTemplate},
 };
 use leptos::*;
 use leptos_meta::*;

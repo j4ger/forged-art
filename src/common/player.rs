@@ -1,11 +1,12 @@
-use super::{card::Card, game_state::Money};
+use super::card::Card;
 
-pub(crate) type PlayerID = u8;
+pub(crate) type PlayerID = usize;
 
+#[derive(Clone)]
 pub(crate) struct Player {
     pub(crate) uuid: String,
     pub(crate) id: PlayerID,
-    pub(crate) cards: Vec<Card>,
-    pub(crate) money: Money,
+    pub(crate) name: String,
+    pub(crate) owned_cards: Vec<Card>,
     // TODO: statistics
 }

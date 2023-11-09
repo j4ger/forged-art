@@ -1,5 +1,5 @@
+use crate::client::components::card::CardView;
 use crate::common::card::Card;
-use crate::components::card::CardView;
 use leptos::*;
 
 #[component]
