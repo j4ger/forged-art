@@ -15,6 +15,7 @@ pub(crate) struct GameState {
     pub(crate) players: Vec<Player>,
     pub(crate) stage: GameStage,
     pub(crate) current_round: usize,
+    pub(crate) values: [[Money; 5]; 5],
 }
 
 #[derive(Clone)]
@@ -106,6 +107,76 @@ impl AuctionState {
         match self {
             AuctionState::Double { target } => target.as_ref(),
             _ => &self,
+        }
+    }
+}
+
+impl Default for GameState {
+    fn default() -> Self {
+        GameState {
+            money: vec![11, 4, 51, 4, 19],
+            deck: vec![vec![]; 5],
+            players: vec![
+                Player {
+                    uuid: 1.to_string(),
+                    id: 0,
+                    name: "Player0".into(),
+                    owned_cards: vec![Card {
+                        color: CardColor::Red,
+                        ty: super::card::AuctionType::Free,
+                        id: 0,
+                    }],
+                },
+                Player {
+                    uuid: 2.to_string(),
+                    id: 1,
+                    name: "Player1".into(),
+                    owned_cards: vec![Card {
+                        color: CardColor::Green,
+                        ty: super::card::AuctionType::Circle,
+                        id: 1,
+                    }],
+                },
+                Player {
+                    uuid: 3.to_string(),
+                    id: 2,
+                    name: "Player2".into(),
+                    owned_cards: vec![Card {
+                        color: CardColor::Blue,
+                        ty: super::card::AuctionType::Fist,
+                        id: 2,
+                    }],
+                },
+                Player {
+                    uuid: 4.to_string(),
+                    id: 3,
+                    name: "Player3".into(),
+                    owned_cards: vec![Card {
+                        color: CardColor::Purple,
+                        ty: super::card::AuctionType::Double,
+                        id: 3,
+                    }],
+                },
+                Player {
+                    uuid: 5.to_string(),
+                    id: 4,
+                    name: "Player4".into(),
+                    owned_cards: vec![Card {
+                        color: CardColor::Yellow,
+                        ty: super::card::AuctionType::Marked,
+                        id: 4,
+                    }],
+                },
+            ],
+            stage: GameStage::WaitingForNextCard(0),
+            current_round: 0,
+            values: [
+                [30, 20, 10, 0, 0],
+                [30, 20, 10, 0, 0],
+                [30, 20, 10, 0, 0],
+                [30, 20, 10, 0, 0],
+                [30, 20, 10, 0, 0],
+            ],
         }
     }
 }

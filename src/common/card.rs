@@ -17,7 +17,7 @@ pub(crate) enum AuctionType {
     Double,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub(crate) enum CardColor {
     Red,    // fg: White
     Green,  // fg: Black

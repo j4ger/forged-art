@@ -17,6 +17,7 @@ impl GameState {
             players: self.players.clone(),
             stage: self.stage.clone(),
             current_round: self.current_round,
+            values: self.values,
         }
     }
 

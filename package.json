@@ -1,0 +1,5 @@
+{
+	"devDependencies": {
+		"@unocss/cli": "^0.57.4"
+	}
+}

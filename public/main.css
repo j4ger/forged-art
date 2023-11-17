@@ -1,12 +1,107 @@
 @font-face {
-	font-family: novecento-wide-medium;
-	src: url(NovecentoWideMedium.ttf);
+    font-family: novecento-wide-medium;
+    src: url(NovecentoWideMedium.ttf);
 }
 
-span {
-	font-family: novecento-wide-medium;
+@font-face {
+    font-family: varela-round-regular;
+    src: url(VarelaRoundRegular.ttf);
+}
+
+.novcento {
+    font-family: novecento-wide-medium;
+}
+
+.varela {
+    font-family: varela-round-regular;
 }
 
 .display-grid {
-	display: grid;
+    display: grid;
+}
+
+@keyframes fall {
+    0% {
+        transform: translateY(-10px) scale(102%);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(0px) scale(100%);
+        opacity: 1;
+    }
+}
+
+.animation-fall {
+    animation: fall;
+    animation-fill-mode: none;
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(.17, .67, .83, .67);
+}
+
+.nowrap {
+    white-space: nowrap;
+}
+
+.animation-hithere {
+    animation: hithere 1.5s ease infinite;
+}
+
+@keyframes hithere {
+    30% {
+        transform: scale(1.2);
+    }
+
+    40%, 60% {
+        transform: rotate(-20deg) scale(1.2);
+    }
+
+    50% {
+        transform: rotate(20deg) scale(1.2);
+    }
+
+    70% {
+        transform: rotate(0deg) scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.money {
+    transform: rotateX(51deg) rotateZ(43deg);
+    transform-style: preserve-3d;
+    box-shadow: 1px 1px 0 1px #f9f9fb, -1px 0 28px 0 rgba(34, 33, 81, 0.01), 28px 28px 28px 0 rgba(34, 33, 81, 0.25);
+    transition: .4s ease-in-out transform, .4s ease-in-out box-shadow;
+}
+
+.money-valid:hover {
+    transform: translate3d(0px, -8px, 0px) rotateX(51deg) rotateZ(43deg);
+    box-shadow: 1px 1px 0 1px #f9f9fb, -1px 0 28px 0 rgba(34, 33, 81, 0.01), 54px 54px 28px -10px rgba(34, 33, 81,
+    0.15);
+    z-index: 100;
+}
+
+.fill {
+    background: var(--background-color);
+}
+
+@keyframes fall-rotate {
+    0% {
+        transform: translateY(-10px) scale(102%) rotateX(51deg) rotateZ(43deg);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(0px) scale(100%) rotateX(51deg) rotateZ(43deg);
+        opacity: 1;
+    }
+}
+
+.animation-fall-rotate {
+    animation: fall-rotate;
+    animation-fill-mode: none;
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(.17, .67, .83, .67);
 }

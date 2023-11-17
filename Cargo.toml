@@ -27,8 +27,16 @@ http = "0.2.8"
 chrono = { version = "0.4" }
 anyhow = { version = "1.0" }
 sled = "0.34.7"
+nanoid = { version = "0.4.0", optional = true }
+identicon = { path = "./identicon", optional = true }
+base64 = { version ="0.21.5", optional = true }
+serde = { version = "1.0.192", features = ["derive"] }
+image = { version = "0.24.7", optional = true }
+md-5 = { version = "0.10.6", optional = true }
+leptos_icons = { version = "0.1.0", features = ["Bi", "BiMoneyRegular", "BiXRegular"] }
 
 [features]
+default = [ "ssr" ]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
@@ -40,6 +48,11 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
+    "dep:nanoid",
+    "dep:identicon",
+    "dep:base64",
+    "dep:image",
+    "dep:md-5"
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode
