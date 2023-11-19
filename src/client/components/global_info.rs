@@ -4,7 +4,8 @@ use crate::common::game_state::GameState;
 use leptos::*;
 
 #[component]
-pub fn GlobalInfoView(#[prop(into)] state: Signal<GameState>) -> impl IntoView {
+pub fn GlobalInfoView() -> impl IntoView {
+    let state: RwSignal<GameState> = use_context().unwrap();
     let round = move || state().current_round;
     let color_counts = [(); 5]
         .iter()

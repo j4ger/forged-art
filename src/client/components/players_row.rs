@@ -1,30 +1,17 @@
 use crate::client::components::ident_icon::IdentIconView;
-use crate::common::{
-    game_state::{AuctionState, GameStage, GameState},
-    player::Player,
-};
+use crate::common::{game_state::GameState, player::Player};
 use leptos::*;
 
 #[component]
-pub fn PlayersRowView(#[prop(into)] state: Signal<GameState>) -> impl IntoView {
+pub fn PlayersRowView() -> impl IntoView {
+    let state: RwSignal<GameState> = use_context().unwrap();
     let players = move || {
         let game_state = state();
         let result: Vec<(Player, bool)> = game_state
             .players
             .into_iter()
             .map(|player| {
-                let active = match &game_state.stage {
-                    GameStage::WaitingForNextCard(next) => player.id == *next,
-                    GameStage::WaitingForDoubleTarget { current, .. } => player.id == *current,
-                    GameStage::WaitingForMarkedPrice { starter, .. } => player.id == *starter,
-                    GameStage::AuctionInAction { state, .. } => match state.get_state() {
-                        AuctionState::Free { .. } => true,
-                        AuctionState::Circle { current_player, .. } => player.id == *current_player,
-                        AuctionState::Fist { .. } => true,
-                        AuctionState::Marked { current_player, .. } => player.id == *current_player,
-                        _ => unreachable!(),
-                    },
-                };
+                let active = game_state.stage.is_player_active(player.id);
                 (player, active)
             })
             .collect();

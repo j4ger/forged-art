@@ -34,6 +34,8 @@ serde = { version = "1.0.192", features = ["derive"] }
 image = { version = "0.24.7", optional = true }
 md-5 = { version = "0.10.6", optional = true }
 leptos_icons = { version = "0.1.0", features = ["Bi", "BiMoneyRegular", "BiXRegular"] }
+dashmap = { version = "5.5.3", optional = true }
+web-sys = { version = "0.3.64", features = ["DataTransfer"] }
 
 [features]
 default = [ "ssr" ]
@@ -52,7 +54,8 @@ ssr = [
     "dep:identicon",
     "dep:base64",
     "dep:image",
-    "dep:md-5"
+    "dep:md-5",
+    "dep:dashmap"
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode

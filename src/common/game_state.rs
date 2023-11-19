@@ -1,5 +1,6 @@
 use super::{
     card::{Card, CardColor},
+    input::ActionInput,
     player::{Player, PlayerID},
 };
 use chrono::{DateTime, Duration, Utc};
@@ -17,6 +18,8 @@ pub(crate) struct GameState {
     pub(crate) current_round: usize,
     pub(crate) values: [[Money; 5]; 5],
 }
+
+pub type GameEvent = (PlayerID, ActionInput);
 
 #[derive(Clone)]
 pub(crate) enum GameStage {
@@ -102,6 +105,23 @@ impl GameState {
     }
 }
 
+impl GameStage {
+    pub(crate) fn is_player_active(&self, player_id: PlayerID) -> bool {
+        match &self {
+            GameStage::WaitingForNextCard(next) => player_id == *next,
+            GameStage::WaitingForDoubleTarget { current, .. } => player_id == *current,
+            GameStage::WaitingForMarkedPrice { starter, .. } => player_id == *starter,
+            GameStage::AuctionInAction { state, .. } => match state.get_state() {
+                AuctionState::Free { .. } => true,
+                AuctionState::Circle { current_player, .. } => player_id == *current_player,
+                AuctionState::Fist { .. } => true,
+                AuctionState::Marked { current_player, .. } => player_id == *current_player,
+                _ => unreachable!(),
+            },
+        }
+    }
+}
+
 impl AuctionState {
     pub(crate) fn get_state(&self) -> &AuctionState {
         match self {
@@ -111,11 +131,59 @@ impl AuctionState {
     }
 }
 
+// TODO: remove this after test
 impl Default for GameState {
     fn default() -> Self {
         GameState {
-            money: vec![11, 4, 51, 4, 19],
-            deck: vec![vec![]; 5],
+            money: vec![514, 4, 51, 4, 19],
+            deck: vec![
+                vec![
+                    Card {
+                        color: CardColor::Red,
+                        ty: super::card::AuctionType::Free,
+                        id: 10,
+                    },
+                    Card {
+                        color: CardColor::Green,
+                        ty: super::card::AuctionType::Circle,
+                        id: 11,
+                    },
+                    Card {
+                        color: CardColor::Blue,
+                        ty: super::card::AuctionType::Marked,
+                        id: 12,
+                    },
+                    Card {
+                        color: CardColor::Purple,
+                        ty: super::card::AuctionType::Double,
+                        id: 13,
+                    },
+                    Card {
+                        color: CardColor::Red,
+                        ty: super::card::AuctionType::Free,
+                        id: 14,
+                    },
+                    Card {
+                        color: CardColor::Green,
+                        ty: super::card::AuctionType::Circle,
+                        id: 15,
+                    },
+                    Card {
+                        color: CardColor::Blue,
+                        ty: super::card::AuctionType::Marked,
+                        id: 16,
+                    },
+                    Card {
+                        color: CardColor::Purple,
+                        ty: super::card::AuctionType::Double,
+                        id: 17,
+                    },
+                ],
+                vec![],
+                vec![],
+                vec![],
+                vec![],
+            ],
             players: vec![
                 Player {
                     uuid: 1.to_string(),

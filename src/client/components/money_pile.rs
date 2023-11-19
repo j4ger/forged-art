@@ -31,7 +31,7 @@ pub fn MoneyPileView(#[prop(into)] value: Signal<Money>) -> impl IntoView {
     };
 
     view! {
-        <div class="flex flex-items-end flex-justify-center h-min-10">
+        <div class="flex flex-items-end flex-justify-center h-min-5 mb-5">
             {piles}
         </div>
     }

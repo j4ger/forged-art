@@ -1,20 +1,32 @@
 use crate::common::card::{AuctionType, Card, CardColor};
+use leptos::ev::DragEvent;
 use leptos::*;
 
+pub const CARD_ID_FORMAT: &'static str = "mart/card";
+
 #[component]
-pub(crate) fn CardView(card: Card, #[prop(optional)] selectable: bool) -> impl IntoView {
-    let (selectable, _) = create_signal(selectable);
+pub(crate) fn CardView(
+    card: Card,
+    #[prop(optional)] selectable: bool,
+    #[prop(optional)] display_only: bool,
+) -> impl IntoView {
+    let selected_card: RwSignal<Option<Card>> = use_context().unwrap();
+    let selected =
+        Signal::derive(move || selected_card().is_some_and(|current| current.id == card.id));
+
+    let dragging: RwSignal<bool> = use_context().unwrap();
     let wrapper_class = format!(
-        "{}
-        my-3 w-40 h-50 rd-2 border-2 transition-all relative
-        shadow-xl z-0 scale-100
-        hover:shadow-2xl hover:z-1 hover:scale-110
+        "{} {}
+        w-40 h-50 rd-2 border-3 border-solid transition-all relative
+        overflow-hidden shadow-xl scale-100
+        hover:shadow-2xl active:shadow-2xl hover:scale-110 active:scale-110
         animation-fall",
-        card.color.comp_bg()
+        card.color.comp_bg(),
+        card.color.main_bd()
     );
     let ty_bg_class = format!(
         "{}
-        h-10 rd-b-2 flex flex-justify-center flex-items-center shadow-lg",
+        h-10 flex flex-justify-center flex-items-center shadow-lg",
         card.color.main_bg()
     );
     let ty_fg_class = format!(
@@ -22,14 +34,39 @@ pub(crate) fn CardView(card: Card, #[prop(optional)] selectable: bool) -> impl I
         novcento text-md font-bold",
         card.color.comp_fg()
     );
+    let on_dragstart = move |ev: DragEvent| {
+        ev.data_transfer()
+            .unwrap()
+            .set_data(CARD_ID_FORMAT, card.id.to_string().as_str())
+            .ok();
+        dragging.set(true);
+    };
+    let on_dragend = move |_| {
+        dragging.set(false);
+    };
+    let on_click = move |_| {
+        if selectable {
+            if selected() {
+                selected_card.set(None);
+            } else {
+                selected_card.set(Some(card));
+            }
+        }
+    };
+
     view! {
         <div
-            class=("cursor-grabbing", selectable)
+            class=("cursor-grabbing", move || selectable && !selected())
+            class=("cursor-context-menu", selected)
+            class=("glow", move || selected() && !display_only)
             class=wrapper_class
             prop:draggable=selectable
+            on:dragstart=on_dragstart
+            on:dragend=on_dragend
+            on:click=on_click
         >
             <div class="flex flex-justify-center">
-                <img src="abstract.jpg" class="aspect-square w-40 h-40 rd-t-2 pointer-events-none" />
+                <img src="abstract.jpg" class="aspect-square w-40 h-40 pointer-events-none"/>
             </div>
             <div
                 class=ty_bg_class
@@ -96,7 +133,7 @@ impl CardColor {
             Self::Red => "border-red-600",
             Self::Green => "border-green",
             Self::Blue => "border-blue",
-            Self::Purple => "border-white",
+            Self::Purple => "border-purple",
             Self::Yellow => "border-yellow",
         }
     }

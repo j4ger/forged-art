@@ -50,7 +50,9 @@ impl GameState {
         self.deck
             .get(player_id)
             .unwrap()
-            .get(card_id)
+            .iter()
+            .filter(|card| card.id == card_id)
+            .next()
             .context("No such card.")
     }
 
@@ -408,9 +410,10 @@ impl GameState {
 
 fn play_card(deck: &mut Vec<Vec<Card>>, from: &mut Player, card_id: CardID) -> Result<Card> {
     let player_deck = deck.get_mut(from.id).unwrap();
-    if card_id > player_deck.len() - 1 {
-        bail!("No such card.");
-    }
-    let card = player_deck.remove(card_id);
+    let index = player_deck
+        .iter()
+        .position(|card| card.id == card_id)
+        .context("No such card.")?;
+    let card = player_deck.remove(index);
     Ok(card)
 }

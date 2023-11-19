@@ -1,14 +1,14 @@
 // Copy is implemented for card
 // so maybe we should only fetch card-image by its id
 // rather than assigning a string for each card since it may be copied
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) struct Card {
     pub(crate) color: CardColor,
     pub(crate) ty: AuctionType,
-    pub(crate) id: usize,
+    pub(crate) id: usize, // globally unique in a game
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub(crate) enum AuctionType {
     Free,
     Circle,

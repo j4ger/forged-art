@@ -105,3 +105,25 @@
     animation-duration: 0.3s;
     animation-timing-function: cubic-bezier(.17, .67, .83, .67);
 }
+
+.bg-comp {
+    background-color: var(--color);
+}
+
+.glow {
+    animation: glow 1s ease-in-out infinite alternate;
+}
+
+@-webkit-keyframes glow {
+    from {
+        box-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #fff, 0 0 20px #fff;
+    }
+
+    to {
+        box-shadow: 0 0 10px #fff, 0 0 15px #fff, 0 0 20px #fff, 0 0 25px #fff;
+    }
+}
+
+figure {
+    scrollbar-width: auto;
+}
