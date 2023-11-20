@@ -18,8 +18,8 @@ pub fn CardLandingView() -> impl IntoView {
             .unwrap()
             .parse()
             .unwrap();
-        log::info!("card: {card_id}");
-        let card = game_state()
+        let card = game_state
+            .get_untracked()
             .deck
             .get(0)
             .unwrap()
@@ -27,7 +27,6 @@ pub fn CardLandingView() -> impl IntoView {
             .filter(|card| card.id == card_id)
             .next()
             .map(|card| *card);
-        log::info!("set: {:?}", card);
         card
     };
 

@@ -1,6 +1,9 @@
 use leptos::*;
 
-use crate::server::identicon::get_identicon;
+use crate::{
+    common::{game_state::GameState, player::PlayerID},
+    server::identicon::get_identicon,
+};
 
 #[component]
 pub fn IdentIconView(name: String) -> impl IntoView {
@@ -35,5 +38,19 @@ pub fn IdentIconView(name: String) -> impl IntoView {
         >
             {icon}
         </Suspense>
+    }
+}
+
+#[component]
+pub fn PlayerIconView(id: PlayerID, #[prop(optional)] active: bool) -> impl IntoView {
+    let game_state: RwSignal<GameState> = use_context().unwrap();
+    let name = game_state.get_untracked().players[id].name.clone();
+
+    view! {
+        <div class="inline"
+            class=("animation-hithere", active)
+        >
+            <IdentIconView name/>
+        </div>
     }
 }

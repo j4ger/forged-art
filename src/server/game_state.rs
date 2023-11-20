@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use chrono::{Duration, Utc};
+use chrono::{Duration, TimeZone, Utc};
 
 use crate::common::{
     card::{AuctionType, Card},
@@ -61,26 +61,28 @@ impl GameState {
         target: AuctionTarget,
         money: Money,
         current: PlayerID,
-        starter: PlayerID,
     ) -> GameStage {
         *self.money.get_mut(current).unwrap() -= money;
         let player = self.players.get_mut(current).unwrap();
+        let owner;
         match target {
-            AuctionTarget::Single((_, card)) => {
+            AuctionTarget::Single((starter, card)) => {
                 player.owned_cards.push(card);
+                owner = starter;
             }
             AuctionTarget::Double {
                 double_card: (_, double_card),
-                target_card: (_, target_card),
+                target_card: (starter, target_card),
             } => {
                 player.owned_cards.push(double_card);
                 player.owned_cards.push(target_card);
+                owner = starter;
             }
         }
-        if starter != current {
-            *self.money.get_mut(starter).unwrap() += money;
+        if owner != current {
+            *self.money.get_mut(owner).unwrap() += money;
         }
-        let next = self.get_next_player_rounded(starter);
+        let next = self.get_next_player_rounded(owner);
         GameStage::WaitingForNextCard(next)
     }
 
@@ -162,11 +164,9 @@ impl GameState {
                                     double: Some((*starter, *double_card)),
                                 }
                             } else {
-                                let inner_state = self.gen_auction_state(&card, from.id);
+                                let state = self.gen_auction_state(&card, from.id);
                                 GameStage::AuctionInAction {
-                                    state: AuctionState::Double {
-                                        target: Box::new(inner_state),
-                                    },
+                                    state,
                                     target: AuctionTarget::Double {
                                         double_card: (*starter, *double_card),
                                         target_card: (from.id, card),
@@ -211,7 +211,7 @@ impl GameState {
             }
             (GameStage::AuctionInAction { state, target }, ActionInput::Bid(money)) => {
                 self.test_enough_money(from.id, money)?;
-                match state.get_state() {
+                match state {
                     AuctionState::Free { host, highest, .. } => {
                         if money > highest.1 {
                             let highest = (from.id, money);
@@ -222,7 +222,7 @@ impl GameState {
                                 state: AuctionState::Free {
                                     host: *host,
                                     highest,
-                                    time_end,
+                                    time_end: time_end.timestamp_millis(),
                                     calls,
                                 },
                                 target: *target,
@@ -256,9 +256,7 @@ impl GameState {
                             match inner {
                                 BidOptionalInner::Pass => {
                                     if *current_player == *starter {
-                                        self.complete_transaction(
-                                            *target, highest.1, highest.0, *starter,
-                                        )
+                                        self.complete_transaction(*target, highest.1, highest.0)
                                     } else {
                                         let next = self.get_next_player_rounded(*current_player);
                                         GameStage::AuctionInAction {
@@ -305,14 +303,12 @@ impl GameState {
                     } => {
                         if *current_player == from.id {
                             if *starter == *current_player {
-                                self.complete_transaction(*target, *price, from.id, *starter)
+                                self.complete_transaction(*target, *price, from.id)
                             } else {
                                 match inner {
                                     MarkedReactionInner::Accept => {
                                         self.test_enough_money(from.id, *price)?;
-                                        self.complete_transaction(
-                                            *target, *price, from.id, *starter,
-                                        )
+                                        self.complete_transaction(*target, *price, from.id)
                                     }
                                     MarkedReactionInner::Pass => {
                                         let next = self.get_next_player_rounded(*current_player);
@@ -344,10 +340,11 @@ impl GameState {
                     calls,
                 } => {
                     if *host == from.id {
+                        let time_end = Utc.timestamp_millis_opt(*time_end).single().unwrap();
                         let now = Utc::now();
-                        if now > *time_end {
+                        if now > time_end {
                             if *calls == 2 {
-                                self.complete_transaction(*target, highest.1, highest.0, *host)
+                                self.complete_transaction(*target, highest.1, highest.0)
                             } else {
                                 let calls = calls + 1;
                                 let now = Utc::now();
@@ -356,7 +353,7 @@ impl GameState {
                                     state: AuctionState::Free {
                                         host: *host,
                                         highest: *highest,
-                                        time_end,
+                                        time_end: time_end.timestamp_millis(),
                                         calls,
                                     },
                                     target: *target,
@@ -390,7 +387,7 @@ impl GameState {
                 AuctionState::Free {
                     host: from,
                     highest: (from, 0 as Money),
-                    time_end,
+                    time_end: time_end.timestamp_millis(),
                     calls: 0,
                 }
             }

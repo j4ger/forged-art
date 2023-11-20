@@ -5,15 +5,15 @@ use leptos::*;
 
 #[component]
 pub fn GlobalInfoView() -> impl IntoView {
-    let state: RwSignal<GameState> = use_context().unwrap();
-    let round = move || state().current_round;
+    let game_state: RwSignal<GameState> = use_context().unwrap();
+    let round = move || game_state().current_round;
     let color_counts = [(); 5]
         .iter()
         .enumerate()
         .map(|(i, ())| {
             let color = CardColor::from_index(i);
             let count = Signal::derive(move || {
-                state()
+                game_state()
                     .players
                     .iter()
                     .map(move |player| {
@@ -34,7 +34,7 @@ pub fn GlobalInfoView() -> impl IntoView {
 
     let table = move || {
         let mut sum = [0u32; 5];
-        let table_body = state()
+        let table_body = game_state()
             .values
             .iter()
             .enumerate()

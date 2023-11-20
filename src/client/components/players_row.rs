@@ -4,9 +4,9 @@ use leptos::*;
 
 #[component]
 pub fn PlayersRowView() -> impl IntoView {
-    let state: RwSignal<GameState> = use_context().unwrap();
+    let game_state: RwSignal<GameState> = use_context().unwrap();
     let players = move || {
-        let game_state = state();
+        let game_state = game_state();
         let result: Vec<(Player, bool)> = game_state
             .players
             .into_iter()

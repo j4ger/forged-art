@@ -12,4 +12,3 @@ pub mod money_pile;
 pub mod player_hand;
 pub mod player_info;
 pub mod players_row;
-pub mod value_table;

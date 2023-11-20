@@ -2,7 +2,8 @@ use super::game_state::Money;
 
 pub(crate) type CardID = usize;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum ActionInput {
     PlayCard(CardID),
     PlayCardOptional(PlayCardOptionalInner),
@@ -13,19 +14,22 @@ pub(crate) enum ActionInput {
     Call,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum MarkedReactionInner {
     Accept,
     Pass,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum BidOptionalInner {
     Pass,
     Bid(Money),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum PlayCardOptionalInner {
     Pass,
     Play(CardID),

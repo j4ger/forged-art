@@ -9,7 +9,7 @@ pub fn PlayerHandView() -> impl IntoView {
 
     view! {
         <div class="
-            fixed bottom--50 w-100%
+            fixed bottom--50 w-100% select-none
             hover:bottom--5 active:bottom--5
             opacity-80 hover:opacity-100 active:opacity-100 transition-property-all transition-500"
         >

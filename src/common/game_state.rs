@@ -1,15 +1,12 @@
 use super::{
     card::{Card, CardColor},
-    input::ActionInput,
     player::{Player, PlayerID},
 };
-use chrono::{DateTime, Duration, Utc};
 
 pub(crate) type Money = u32;
-pub(crate) type TimeSpan = Duration;
-pub(crate) type Timestamp = DateTime<Utc>;
 
-#[derive(Clone)]
+#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) struct GameState {
     pub(crate) deck: Vec<Vec<Card>>,
     pub(crate) money: Vec<Money>,
@@ -19,9 +16,8 @@ pub(crate) struct GameState {
     pub(crate) values: [[Money; 5]; 5],
 }
 
-pub type GameEvent = (PlayerID, ActionInput);
-
-#[derive(Clone)]
+#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum GameStage {
     WaitingForNextCard(PlayerID),
     WaitingForDoubleTarget {
@@ -43,7 +39,8 @@ pub(crate) enum GameStage {
 pub(crate) type CardPair = (PlayerID, Card);
 pub(crate) type MoneyPair = (PlayerID, Money);
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum AuctionTarget {
     Single(CardPair),
     Double {
@@ -52,12 +49,13 @@ pub(crate) enum AuctionTarget {
     },
 }
 
-#[derive(Clone)]
+#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[archive(check_bytes)]
 pub(crate) enum AuctionState {
     Free {
         host: PlayerID,
         highest: MoneyPair,
-        time_end: Timestamp,
+        time_end: i64,
         calls: u8,
     },
     Circle {
@@ -73,9 +71,6 @@ pub(crate) enum AuctionState {
         starter: PlayerID,
         current_player: PlayerID,
         price: Money,
-    },
-    Double {
-        target: Box<AuctionState>,
     },
 }
 
@@ -111,140 +106,12 @@ impl GameStage {
             GameStage::WaitingForNextCard(next) => player_id == *next,
             GameStage::WaitingForDoubleTarget { current, .. } => player_id == *current,
             GameStage::WaitingForMarkedPrice { starter, .. } => player_id == *starter,
-            GameStage::AuctionInAction { state, .. } => match state.get_state() {
+            GameStage::AuctionInAction { state, .. } => match state {
                 AuctionState::Free { .. } => true,
                 AuctionState::Circle { current_player, .. } => player_id == *current_player,
                 AuctionState::Fist { .. } => true,
                 AuctionState::Marked { current_player, .. } => player_id == *current_player,
-                _ => unreachable!(),
             },
-        }
-    }
-}
-
-impl AuctionState {
-    pub(crate) fn get_state(&self) -> &AuctionState {
-        match self {
-            AuctionState::Double { target } => target.as_ref(),
-            _ => &self,
-        }
-    }
-}
-
-// TODO: remove this after test
-impl Default for GameState {
-    fn default() -> Self {
-        GameState {
-            money: vec![514, 4, 51, 4, 19],
-            deck: vec![
-                vec![
-                    Card {
-                        color: CardColor::Red,
-                        ty: super::card::AuctionType::Free,
-                        id: 10,
-                    },
-                    Card {
-                        color: CardColor::Green,
-                        ty: super::card::AuctionType::Circle,
-                        id: 11,
-                    },
-                    Card {
-                        color: CardColor::Blue,
-                        ty: super::card::AuctionType::Marked,
-                        id: 12,
-                    },
-                    Card {
-                        color: CardColor::Purple,
-                        ty: super::card::AuctionType::Double,
-                        id: 13,
-                    },
-                    Card {
-                        color: CardColor::Red,
-                        ty: super::card::AuctionType::Free,
-                        id: 14,
-                    },
-                    Card {
-                        color: CardColor::Green,
-                        ty: super::card::AuctionType::Circle,
-                        id: 15,
-                    },
-                    Card {
-                        color: CardColor::Blue,
-                        ty: super::card::AuctionType::Marked,
-                        id: 16,
-                    },
-                    Card {
-                        color: CardColor::Purple,
-                        ty: super::card::AuctionType::Double,
-                        id: 17,
-                    },
-                ],
-                vec![],
-                vec![],
-                vec![],
-                vec![],
-            ],
-            players: vec![
-                Player {
-                    uuid: 1.to_string(),
-                    id: 0,
-                    name: "Player0".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Red,
-                        ty: super::card::AuctionType::Free,
-                        id: 0,
-                    }],
-                },
-                Player {
-                    uuid: 2.to_string(),
-                    id: 1,
-                    name: "Player1".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Green,
-                        ty: super::card::AuctionType::Circle,
-                        id: 1,
-                    }],
-                },
-                Player {
-                    uuid: 3.to_string(),
-                    id: 2,
-                    name: "Player2".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Blue,
-                        ty: super::card::AuctionType::Fist,
-                        id: 2,
-                    }],
-                },
-                Player {
-                    uuid: 4.to_string(),
-                    id: 3,
-                    name: "Player3".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Purple,
-                        ty: super::card::AuctionType::Double,
-                        id: 3,
-                    }],
-                },
-                Player {
-                    uuid: 5.to_string(),
-                    id: 4,
-                    name: "Player4".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Yellow,
-                        ty: super::card::AuctionType::Marked,
-                        id: 4,
-                    }],
-                },
-            ],
-            stage: GameStage::WaitingForNextCard(0),
-            current_round: 0,
-            values: [
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-            ],
         }
     }
 }

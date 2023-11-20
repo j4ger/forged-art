@@ -45,6 +45,7 @@
 .mt-10{margin-top:2.5rem;}
 .mt-2{margin-top:0.5rem;}
 .box-content{box-sizing:content-box;}
+.inline{display:inline;}
 .inline-block{display:inline-block;}
 .aspect-square{aspect-ratio:1/1;}
 .h-10{height:2.5rem;}
@@ -58,10 +59,12 @@
 .w-100\%{width:100%;}
 .w-4{width:1rem;}
 .w-40{width:10rem;}
+.w-40\%{width:40%;}
 .w-96\%{width:96%;}
 .flex{display:flex;}
 .flex-inline,
 .inline-flex{display:inline-flex;}
+.flex-col{flex-direction:column;}
 .flex-col-reverse{flex-direction:column-reverse;}
 .table{display:table;}
 .translate-y-0{--un-translate-y:0;transform:translateX(var(--un-translate-x)) translateY(var(--un-translate-y)) translateZ(var(--un-translate-z)) rotate(var(--un-rotate)) rotateX(var(--un-rotate-x)) rotateY(var(--un-rotate-y)) rotateZ(var(--un-rotate-z)) skewX(var(--un-skew-x)) skewY(var(--un-skew-y)) scaleX(var(--un-scale-x)) scaleY(var(--un-scale-y)) scaleZ(var(--un-scale-z));}
@@ -77,6 +80,7 @@
 .cursor-grabbing{cursor:grabbing;}
 .select-none{-webkit-user-select:none;user-select:none;}
 .gap-1{gap:0.25rem;}
+.gap-2{gap:0.5rem;}
 .flex-justify-center{justify-content:center;}
 .flex-items-end{align-items:flex-end;}
 .flex-items-center{align-items:center;}

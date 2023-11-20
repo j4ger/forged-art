@@ -4,7 +4,7 @@ use leptos::*;
 
 #[component]
 pub fn PlayerInfoView(#[prop(into)] player: Signal<Player>) -> impl IntoView {
-    let name = player().name;
+    let name = player.get_untracked().name;
     let color_counts = [(); 5]
         .iter()
         .enumerate()

@@ -24,7 +24,7 @@ wasm-bindgen = "=0.2.87"
 thiserror = "1.0.38"
 tracing = { version = "0.1.37", optional = true }
 http = "0.2.8"
-chrono = { version = "0.4" }
+chrono = { version = "0.4", features = ["rkyv"] }
 anyhow = { version = "1.0" }
 sled = "0.34.7"
 nanoid = { version = "0.4.0", optional = true }
@@ -35,7 +35,12 @@ image = { version = "0.24.7", optional = true }
 md-5 = { version = "0.10.6", optional = true }
 leptos_icons = { version = "0.1.0", features = ["Bi", "BiMoneyRegular", "BiXRegular"] }
 dashmap = { version = "5.5.3", optional = true }
-web-sys = { version = "0.3.64", features = ["DataTransfer"] }
+web-sys = { version = "0.3.64", features = [
+    "DataTransfer", "WebSocket", "BinaryType", "EventListener", "EventTarget"
+] }
+js-sys = { version = "0.3.64" }
+leptos-use = "0.8.2"
+rkyv = { version = "0.7.42", features = ["validation"] }
 
 [features]
 default = [ "ssr" ]

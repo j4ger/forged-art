@@ -17,7 +17,7 @@ pub(crate) fn CardView(
     let dragging: RwSignal<bool> = use_context().unwrap();
     let wrapper_class = format!(
         "{} {}
-        w-40 h-50 rd-2 border-3 border-solid transition-all relative
+        w-40 h-50 rd-2 border-3 border-solid transition-all relative select-none
         overflow-hidden shadow-xl scale-100
         hover:shadow-2xl active:shadow-2xl hover:scale-110 active:scale-110
         animation-fall",
