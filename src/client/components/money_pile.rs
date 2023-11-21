@@ -8,27 +8,24 @@ const MARGIN: [u32; 6] = [2, 3, 3, 3, 4, 4];
 #[component]
 pub fn MoneyPileView(#[prop(into)] value: Signal<Money>) -> impl IntoView {
     let values = move || split_money(value());
-    let piles = move || {
-        values()
-            .iter()
-            .enumerate()
-            .map(|(i, count)| {
-                let value = MONEY_VALUE[i];
-                let mut inner = Vec::new();
-                for _ in 0..*count {
-                    inner.push(view! {
+    let piles = (0usize..6usize)
+        .map(|i| {
+            let value = MONEY_VALUE[i];
+            let count = move || 0..values()[i];
+            let class = format!("inline-flex flex-col-reverse mr--{}", MARGIN[i]);
+            view! {
+                <div class=class>
+                    <For
+                        each=count
+                        key=|i| *i
+                        let:_
+                    >
                         <MoneyDisplayView value action=Action::Decrease/>
-                    });
-                }
-                let class = format!("inline-flex flex-col-reverse mr--{}", MARGIN[i]);
-                view! {
-                    <div class=class>
-                        {inner}
-                    </div>
-                }
-            })
-            .collect_view()
-    };
+                    </For>
+                </div>
+            }
+        })
+        .collect_view();
 
     view! {
         <div class="flex flex-items-end flex-justify-center h-min-5 mb-5">

@@ -27,7 +27,7 @@ pub fn MoneyDisplayView(
 
     view! {
         <div
-            class="money fill flex-inline flex-justify-center flex-items-center px-1 b-1 b-double rd-1 mb--5"
+            class="money fill animation-fall-rotate flex-inline flex-justify-center flex-items-center px-1 b-1 b-double rd-1 mb--5"
             class=("money-valid", valid)
             class=("opacity-50", move || !valid())
             on:click=on_click
