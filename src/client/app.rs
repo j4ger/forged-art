@@ -1,4 +1,4 @@
-use super::websocket::WsInner;
+use super::{context::inject_game_context, websocket::WsInner};
 use crate::{
     client::{
         components::{
@@ -29,15 +29,12 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="uno.css"/>
         <Stylesheet id="leptos-1" href="main.css"/>
 
-        <Title text="Welcome to Leptos"/>
+        <Title text="Forged Art"/>
 
         <Router fallback=|| {
             let mut outside_errors = Errors::default();
             outside_errors.insert_with_default_key(AppError::NotFound);
-            view! {
-                <ErrorTemplate outside_errors/>
-            }
-            .into_view()
+            view! { <ErrorTemplate outside_errors/> }.into_view()
         }>
             <main>
                 <Routes>
@@ -50,93 +47,11 @@ pub fn App() -> impl IntoView {
 
 #[component]
 fn InGameView() -> impl IntoView {
+    inject_game_context();
+    let game_state: RwSignal<GameState> = expect_context();
+    let player: RwSignal<Player> = expect_context();
+
     let (count, set_count) = create_signal(0);
-    // WARN: think twice before changing this type, as many components are
-    // relying on the type to fetch from the context API
-    let game_state = RwSignal::new(GameState::default());
-    provide_context(game_state);
-
-    let ws = WsInner::new("/api/game");
-    ws.set_onmessage(move |message| match message {
-        ServerMessage::StateUpdate(state) => {
-            game_state.set(state);
-        }
-        ServerMessage::GameEvent(event) => {
-            todo!()
-        }
-    });
-    let ws = store_value(ws);
-    provide_context(ws);
-
-    let cards = vec![
-        Card {
-            color: CardColor::Purple,
-            ty: AuctionType::Free,
-            id: 1,
-        },
-        Card {
-            color: CardColor::Blue,
-            ty: AuctionType::Fist,
-            id: 2,
-        },
-        Card {
-            color: CardColor::Red,
-            ty: AuctionType::Circle,
-            id: 3,
-        },
-        Card {
-            color: CardColor::Yellow,
-            ty: AuctionType::Marked,
-            id: 4,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 5,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 6,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 7,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 8,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 9,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 10,
-        },
-    ];
-
-    // WARN: think twice before changing this type, as many components are
-    // relying on the type to fetch from the context API
-    let player = RwSignal::new(Player {
-        uuid: "114".into(),
-        id: 0,
-        name: "Player1".into(),
-        owned_cards: cards,
-        connected: true,
-    });
-    provide_context(player);
-
-    // WARN: think twice before changing this type, as many components are
-    // relying on the type to fetch from the context API
-    let balance = Signal::derive(move || game_state().money[player().id]);
-    provide_context(balance);
-
     let mut next_id = 6;
     let on_click = move |_| {
         set_count.update(|count| *count += 1);
@@ -163,15 +78,11 @@ fn InGameView() -> impl IntoView {
         log::info!("Money state: {:?}", money());
     });
 
-    let selected_card: RwSignal<Option<Card>> = RwSignal::new(None);
-    provide_context(selected_card);
-
-    let dragging: RwSignal<bool> = RwSignal::new(false);
-    provide_context(dragging);
-
     view! {
-        <h1>"Welcome to Leptos!"</h1>
-        <button on:click=on_click>"Click Me: " {count}</button>
+        <button class="mb-4" on:click=on_click>
+            "Click Me: "
+            {count}
+        </button>
 
         <ActionPanelView/>
 
@@ -180,151 +91,14 @@ fn InGameView() -> impl IntoView {
     }
 }
 
-// TODO: remove this after test
-impl Default for GameState {
-    fn default() -> Self {
-        let dummy_card1 = Card {
-            color: CardColor::Red,
-            ty: AuctionType::Free,
-            id: 101,
-        };
-        let dummy_card2 = Card {
-            color: CardColor::Red,
-            ty: AuctionType::Free,
-            id: 101,
-        };
-        GameState {
-            money: vec![514, 4, 51, 4, 19],
-            deck: vec![
-                vec![
-                    Card {
-                        color: CardColor::Red,
-                        ty: AuctionType::Free,
-                        id: 10,
-                    },
-                    Card {
-                        color: CardColor::Green,
-                        ty: AuctionType::Circle,
-                        id: 11,
-                    },
-                    Card {
-                        color: CardColor::Blue,
-                        ty: AuctionType::Marked,
-                        id: 12,
-                    },
-                    Card {
-                        color: CardColor::Purple,
-                        ty: AuctionType::Double,
-                        id: 13,
-                    },
-                    Card {
-                        color: CardColor::Red,
-                        ty: AuctionType::Free,
-                        id: 14,
-                    },
-                    Card {
-                        color: CardColor::Green,
-                        ty: AuctionType::Circle,
-                        id: 15,
-                    },
-                    Card {
-                        color: CardColor::Blue,
-                        ty: AuctionType::Marked,
-                        id: 16,
-                    },
-                    Card {
-                        color: CardColor::Purple,
-                        ty: AuctionType::Double,
-                        id: 17,
-                    },
-                ],
-                vec![],
-                vec![],
-                vec![],
-                vec![],
-            ],
-            players: vec![
-                Player {
-                    uuid: 1.to_string(),
-                    id: 0,
-                    name: "Player0".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Red,
-                        ty: AuctionType::Free,
-                        id: 0,
-                    }],
-                    connected: true,
-                },
-                Player {
-                    uuid: 2.to_string(),
-                    id: 1,
-                    name: "Player1".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Green,
-                        ty: AuctionType::Circle,
-                        id: 1,
-                    }],
-                    connected: true,
-                },
-                Player {
-                    uuid: 3.to_string(),
-                    id: 2,
-                    name: "Player2".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Blue,
-                        ty: AuctionType::Fist,
-                        id: 2,
-                    }],
-                    connected: true,
-                },
-                Player {
-                    uuid: 4.to_string(),
-                    id: 3,
-                    name: "Player3".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Purple,
-                        ty: AuctionType::Double,
-                        id: 3,
-                    }],
-                    connected: true,
-                },
-                Player {
-                    uuid: 5.to_string(),
-                    id: 4,
-                    name: "Player4".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Yellow,
-                        ty: AuctionType::Marked,
-                        id: 4,
-                    }],
-                    connected: true,
-                },
-            ],
-            // stage: GameStage::WaitingForDoubleTarget {
-            //     double_card: dummy_card1,
-            //     starter: 1,
-            //     current: 0,
-            // },
-            // stage: GameStage::WaitingForNextCard(1),
-            stage: GameStage::WaitingForMarkedPrice {
-                marked_card: dummy_card1,
-                starter: 0,
-                double: Some((1, dummy_card2)),
-            },
-            current_round: 0,
-            values: [
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-                [30, 20, 10, 0, 0],
-            ],
-        }
-    }
-}
 // TODO: better responsive design
 // TODO: reduce unnecessary divs
 // TODO: history
 // TODO: use_web_notification
 // TODO: clean up unwraps
 // TODO: fix warnings prompted in console.log
+// TODO: use leptos_animation for text animation
+
+// TODO: probably need to refactor action panel so that views for all states are statically generated
+// only their visibility is controlled by <Show>
+

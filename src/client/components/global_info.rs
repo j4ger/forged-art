@@ -5,7 +5,7 @@ use leptos::*;
 
 #[component]
 pub fn GlobalInfoView() -> impl IntoView {
-    let game_state: RwSignal<GameState> = use_context().unwrap();
+    let game_state: RwSignal<GameState> = expect_context();
     let round = move || game_state().current_round;
     let color_counts = [(); 5]
         .iter()
@@ -78,18 +78,16 @@ pub fn GlobalInfoView() -> impl IntoView {
                 let outer_class = color.main_bg();
                 let inner_class = format!("{} varela", color.comp_fg());
                 view! {
-                        <td scope="col" class=outer_class>
-                            <span class=inner_class>{*sum}</span>
-                        </td>
+                    <td scope="col" class=outer_class>
+                        <span class=inner_class>{*sum}</span>
+                    </td>
                 }
             })
             .collect_view();
 
         view! {
             <table>
-                <tbody>
-                    {table_body}
-                </tbody>
+                <tbody>{table_body}</tbody>
                 <tfoot>
                     <tr>
                         <th scope="col">
@@ -118,10 +116,9 @@ pub fn GlobalInfoView() -> impl IntoView {
                 <ColorCountView color_counts=color_counts/>
             </div>
             <div class="max-w-40">
-                <table>
-                    {table}
-                </table>
+                <table>{table}</table>
             </div>
         </article>
     }
 }
+

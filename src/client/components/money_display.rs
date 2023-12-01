@@ -14,7 +14,7 @@ pub fn MoneyDisplayView(
     #[prop(default=Action::Decrease)] action: Action,
     #[prop(optional, into)] residual: Option<Signal<Money>>,
 ) -> impl IntoView {
-    let setter: WriteSignal<Money> = use_context().unwrap();
+    let setter: WriteSignal<Money> = expect_context();
     let valid = Signal::derive(move || residual.map_or(true, |res| value < res()));
     let on_click = move |_| match action {
         Action::Decrease => setter.update(|count| *count -= value),
@@ -37,3 +37,4 @@ pub fn MoneyDisplayView(
         </div>
     }
 }
+

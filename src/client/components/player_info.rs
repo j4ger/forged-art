@@ -27,7 +27,7 @@ pub fn PlayerInfoView(#[prop(into)] player: Signal<Player>) -> impl IntoView {
         <div class="px-4 flex-inline flex-items-center">
             <span>{name}</span>
             <ColorCountView color_counts/>
-            <span class="varela ml-2">"Total: "{card_count}</span>
+            <span class="varela ml-2">"Total: " {card_count}</span>
         </div>
     }
 }

@@ -10,30 +10,36 @@ pub(crate) fn CardView(
     #[prop(optional)] selectable: bool,
     #[prop(optional)] display_only: bool,
 ) -> impl IntoView {
-    let selected_card: RwSignal<Option<Card>> = use_context().unwrap();
+    let selected_card: RwSignal<Option<Card>> = expect_context();
     let selected =
         Signal::derive(move || selected_card().is_some_and(|current| current.id == card.id));
 
-    let dragging: RwSignal<bool> = use_context().unwrap();
-    let wrapper_class = format!(
-        "{} {}
+    let dragging: RwSignal<bool> = expect_context();
+    let wrapper_class = move || {
+        format!(
+            "{} {}
         w-40 h-50 rd-2 border-3 border-solid transition-all relative select-none
         overflow-hidden shadow-xl scale-100
         hover:shadow-2xl active:shadow-2xl hover:scale-110 active:scale-110
         animation-fall",
-        card.color.comp_bg(),
-        card.color.main_bd()
-    );
-    let ty_bg_class = format!(
-        "{}
+            card.color.comp_bg(),
+            card.color.main_bd()
+        )
+    };
+    let ty_bg_class = move || {
+        format!(
+            "{}
         h-10 flex flex-justify-center flex-items-center shadow-lg",
-        card.color.main_bg()
-    );
-    let ty_fg_class = format!(
-        "{}
+            card.color.main_bg()
+        )
+    };
+    let ty_fg_class = move || {
+        format!(
+            "{}
         novcento text-md font-bold",
-        card.color.comp_fg()
-    );
+            card.color.comp_fg()
+        )
+    };
     let on_dragstart = move |ev: DragEvent| {
         ev.data_transfer()
             .unwrap()
@@ -68,14 +74,8 @@ pub(crate) fn CardView(
             <div class="flex flex-justify-center">
                 <img src="abstract.jpg" class="aspect-square w-40 h-40 pointer-events-none"/>
             </div>
-            <div
-                class=ty_bg_class
-            >
-                <span
-                    class=ty_fg_class
-                >
-                {card.ty.text()}
-                </span>
+            <div class=ty_bg_class>
+                <span class=ty_fg_class>{card.ty.text()}</span>
             </div>
         </div>
     }
@@ -138,3 +138,4 @@ impl CardColor {
         }
     }
 }
+

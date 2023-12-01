@@ -10,7 +10,7 @@ pub(crate) fn CardListView(#[prop(into)] player: Signal<Player>) -> impl IntoVie
             <summary>
                 <PlayerInfoView player/>
             </summary>
-            <CardDeckView cards selectable=false />
+            <CardDeckView cards selectable=false/>
         </details>
     }
 }

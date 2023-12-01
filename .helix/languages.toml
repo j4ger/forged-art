@@ -1,0 +1,7 @@
+[[language]]
+name = "rust"
+formatter = { command = "leptosfmt", args = ["--stdin", "--rustfmt"] }
+
+[language-server.rust-analyzer]
+config = { procMacro = { ignored = { leptos_macro = ["component", "server"] } } }
+

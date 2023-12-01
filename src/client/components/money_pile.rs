@@ -15,11 +15,7 @@ pub fn MoneyPileView(#[prop(into)] value: Signal<Money>) -> impl IntoView {
             let class = format!("inline-flex flex-col-reverse mr--{}", MARGIN[i]);
             view! {
                 <div class=class>
-                    <For
-                        each=count
-                        key=|i| *i
-                        let:_
-                    >
+                    <For each=count key=|i| *i let:_>
                         <MoneyDisplayView value action=Action::Decrease/>
                     </For>
                 </div>
@@ -27,9 +23,5 @@ pub fn MoneyPileView(#[prop(into)] value: Signal<Money>) -> impl IntoView {
         })
         .collect_view();
 
-    view! {
-        <div class="flex flex-items-end flex-justify-center h-min-5 mb-5">
-            {piles}
-        </div>
-    }
+    view! { <div class="flex flex-items-end flex-justify-center h-min-5 mb-5">{piles}</div> }
 }

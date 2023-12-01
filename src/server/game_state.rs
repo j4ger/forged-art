@@ -99,15 +99,13 @@ impl GameState {
                     if let AuctionType::Double = card.ty {
                         let next = self.get_next_player_rounded(from.id);
                         GameStage::WaitingForDoubleTarget {
-                            double_card: card,
-                            starter: from.id,
+                            double_card: (from.id, card),
                             current: next,
                         }
                     } else if let AuctionType::Marked = card.ty {
                         GameStage::WaitingForMarkedPrice {
-                            marked_card: card,
                             starter: from.id,
-                            double: None,
+                            target: AuctionTarget::Single((from.id, card)),
                         }
                     } else {
                         let state = self.gen_auction_state(&card, from.id);
@@ -123,7 +121,6 @@ impl GameState {
             (
                 GameStage::WaitingForDoubleTarget {
                     double_card,
-                    starter,
                     current,
                 },
                 ActionInput::PlayCardOptional(inner),
@@ -131,10 +128,9 @@ impl GameState {
                 if *current == from.id {
                     match inner {
                         PlayCardOptionalInner::Pass => {
-                            match self.get_next_player(*starter, *current) {
+                            match self.get_next_player(double_card.0, *current) {
                                 Some(next) => GameStage::WaitingForDoubleTarget {
                                     double_card: *double_card,
-                                    starter: *starter,
                                     current: next,
                                 },
                                 None => {
@@ -146,7 +142,7 @@ impl GameState {
                         }
                         PlayCardOptionalInner::Play(card_id) => {
                             let card = self.get_card(from.id, card_id)?;
-                            if card.color != double_card.color {
+                            if card.color != double_card.1.color {
                                 bail!("Wrong card color.");
                             }
                             if let AuctionType::Double = card.ty {
@@ -159,16 +155,18 @@ impl GameState {
                             }
                             if let AuctionType::Marked = card.ty {
                                 GameStage::WaitingForMarkedPrice {
-                                    marked_card: card,
                                     starter: from.id,
-                                    double: Some((*starter, *double_card)),
+                                    target: AuctionTarget::Double {
+                                        double_card: *double_card,
+                                        target_card: (from.id, card),
+                                    },
                                 }
                             } else {
                                 let state = self.gen_auction_state(&card, from.id);
                                 GameStage::AuctionInAction {
                                     state,
                                     target: AuctionTarget::Double {
-                                        double_card: (*starter, *double_card),
+                                        double_card: *double_card,
                                         target_card: (from.id, card),
                                     },
                                 }
@@ -180,30 +178,18 @@ impl GameState {
                 }
             }
             (
-                GameStage::WaitingForMarkedPrice {
-                    marked_card,
-                    starter,
-                    double,
-                },
+                GameStage::WaitingForMarkedPrice { starter, target },
                 ActionInput::AssignMarkedPrice(money),
             ) => {
                 if *starter == from.id {
                     self.test_enough_money(from.id, money)?;
                     let next = self.get_next_player_rounded(from.id);
-                    let target = match double {
-                        None => AuctionTarget::Single((from.id, *marked_card)),
-                        Some(double) => AuctionTarget::Double {
-                            double_card: *double,
-                            target_card: (from.id, *marked_card),
-                        },
-                    };
                     GameStage::AuctionInAction {
                         state: AuctionState::Marked {
                             starter: from.id,
-                            current_player: next,
-                            price: money,
+                            current: (next, money),
                         },
-                        target,
+                        target: *target,
                     }
                 } else {
                     bail!("Not your turn yet.");
@@ -296,27 +282,22 @@ impl GameState {
             }
             (GameStage::AuctionInAction { state, target }, ActionInput::MarkedReaction(inner)) => {
                 match state {
-                    AuctionState::Marked {
-                        starter,
-                        current_player,
-                        price,
-                    } => {
-                        if *current_player == from.id {
-                            if *starter == *current_player {
-                                self.complete_transaction(*target, *price, from.id)
+                    AuctionState::Marked { starter, current } => {
+                        if current.0 == from.id {
+                            if *starter == current.0 {
+                                self.complete_transaction(*target, current.1, from.id)
                             } else {
                                 match inner {
                                     MarkedReactionInner::Accept => {
-                                        self.test_enough_money(from.id, *price)?;
-                                        self.complete_transaction(*target, *price, from.id)
+                                        self.test_enough_money(from.id, current.1)?;
+                                        self.complete_transaction(*target, current.1, from.id)
                                     }
                                     MarkedReactionInner::Pass => {
-                                        let next = self.get_next_player_rounded(*current_player);
+                                        let next = self.get_next_player_rounded(current.0);
                                         GameStage::AuctionInAction {
                                             state: AuctionState::Marked {
                                                 starter: *starter,
-                                                current_player: next,
-                                                price: *price,
+                                                current: (next, current.1),
                                             },
                                             target: *target,
                                         }
@@ -414,3 +395,4 @@ fn play_card(deck: &mut Vec<Vec<Card>>, from: &mut Player, card_id: CardID) -> R
     let card = player_deck.remove(index);
     Ok(card)
 }
+

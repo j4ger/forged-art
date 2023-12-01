@@ -20,6 +20,10 @@
     display: grid;
 }
 
+button {
+    margin-bottom: 0;
+}
+
 @keyframes fall {
     0% {
         transform: translateY(-10px) scale(102%);

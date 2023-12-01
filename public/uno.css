@@ -34,13 +34,15 @@
 .active\:z-1:active{z-index:1;}
 .mx-2{margin-left:0.5rem;margin-right:0.5rem;}
 .mx-a{margin-left:auto;margin-right:auto;}
+.my-2{margin-top:0.5rem;margin-bottom:0.5rem;}
 .\!mb-0{margin-bottom:0 !important;}
 .mb--5{margin-bottom:-1.25rem;}
-.mb-0{margin-bottom:0;}
 .mb-4{margin-bottom:1rem;}
 .mb-5{margin-bottom:1.25rem;}
 .ml--10{margin-left:-2.5rem;}
+.ml-1{margin-left:0.25rem;}
 .ml-2{margin-left:0.5rem;}
+.mr-3{margin-right:0.75rem;}
 .mt--8{margin-top:-2rem;}
 .mt-10{margin-top:2.5rem;}
 .mt-2{margin-top:0.5rem;}
@@ -59,7 +61,6 @@
 .w-100\%{width:100%;}
 .w-4{width:1rem;}
 .w-40{width:10rem;}
-.w-40\%{width:40%;}
 .w-96\%{width:96%;}
 .flex{display:flex;}
 .flex-inline,
@@ -113,13 +114,16 @@
 .bg-yellow{--un-bg-opacity:1;background-color:rgb(250 204 21 / var(--un-bg-opacity));}
 .pa-2{padding:0.5rem;}
 .px-1{padding-left:0.25rem;padding-right:0.25rem;}
+.px-2{padding-left:0.5rem;padding-right:0.5rem;}
 .px-4{padding-left:1rem;padding-right:1rem;}
+.px-8{padding-left:2rem;padding-right:2rem;}
 .pb-2{padding-bottom:0.5rem;}
 .pl-18{padding-left:4.5rem;}
 .pr-8{padding-right:2rem;}
 .pt-0\.5{padding-top:0.125rem;}
 .pt-12{padding-top:3rem;}
 .text-center{text-align:center;}
+.font-size-10{font-size:2.5rem;}
 .font-size-3{font-size:0.75rem;}
 .font-1000{font-weight:1000;}
 .font-bold{font-weight:700;}

@@ -13,11 +13,7 @@ pub(crate) fn CardDeckView(
         translate-y-0 hover:translate-y--5 active:translate-y--5";
     view! {
         <figure class="mt--8 pt-12 pb-2 pl-18 pr-8 nowrap overflow-y-hidden">
-            <For
-                each=cards
-                key=|card| card.id
-                let:card
-            >
+            <For each=cards key=|card| card.id let:card>
                 <div class=wrapper_class>
                     <CardView card selectable/>
                 </div>

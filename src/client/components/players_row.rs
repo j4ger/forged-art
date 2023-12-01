@@ -4,7 +4,7 @@ use leptos::*;
 
 #[component]
 pub fn PlayersRowView() -> impl IntoView {
-    let game_state: RwSignal<GameState> = use_context().unwrap();
+    let game_state: RwSignal<GameState> = expect_context();
     let players = move || {
         let game_state = game_state();
         let result: Vec<(Player, bool)> = game_state
@@ -19,11 +19,7 @@ pub fn PlayersRowView() -> impl IntoView {
     };
     view! {
         <div class="mt-2">
-            <For
-                each=players
-                key=|(player,_)| player.id
-                let:pair
-            >
+            <For each=players key=|(player, _)| player.id let:pair>
                 <div class="inline-block text-center mx-2">
                     <div class=("animation-hithere", pair.1)>
                         <IdentIconView name=pair.0.name.clone()/>
@@ -34,3 +30,4 @@ pub fn PlayersRowView() -> impl IntoView {
         </div>
     }
 }
+

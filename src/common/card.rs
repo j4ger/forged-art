@@ -1,15 +1,15 @@
 // Copy is implemented for card
 // so maybe we should only fetch card-image by its id
 // rather than assigning a string for each card since it may be copied
-#[derive(rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, Clone, Copy, Debug)]
+#[derive(rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[archive(check_bytes)]
 pub(crate) struct Card {
     pub(crate) color: CardColor,
     pub(crate) ty: AuctionType,
-    pub(crate) id: usize, // globally unique in a game
+    pub(crate) id: usize, // globally unique in a game, should start at 1
 }
 
-#[derive(rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, Clone, Copy, Debug)]
+#[derive(rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[archive(check_bytes)]
 pub(crate) enum AuctionType {
     Free,
@@ -53,3 +53,4 @@ impl CardColor {
         }
     }
 }
+

@@ -6,9 +6,9 @@ use leptos::*;
 
 #[component]
 pub fn CardLandingView() -> impl IntoView {
-    let game_state: RwSignal<GameState> = use_context().unwrap();
-    let selected_card: RwSignal<Option<Card>> = use_context().unwrap();
-    let dragging: RwSignal<bool> = use_context().unwrap();
+    let game_state: RwSignal<GameState> = expect_context();
+    let selected_card: RwSignal<Option<Card>> = expect_context();
+    let dragging: RwSignal<bool> = expect_context();
 
     let get_card = move |ev: DragEvent| {
         let card_id: usize = ev
@@ -59,9 +59,7 @@ pub fn CardLandingView() -> impl IntoView {
         }
         .into_view(),
         None => view! {
-            <div
-                class="h-60% flex flex-justify-center flex-items-center"
-            >
+            <div class="h-60% flex flex-justify-center flex-items-center">
                 <span>"drag to here"</span>
             </div>
         }
@@ -69,7 +67,8 @@ pub fn CardLandingView() -> impl IntoView {
     };
 
     view! {
-        <div class="box-content w-40 h-50 border-dashed border-3 rd-3"
+        <div
+            class="box-content w-40 h-50 border-dashed border-3 rd-3"
             class=("!border-solid", move || hovering() || selected_card().is_some())
             class=("!border-4", dragging)
             class=("!border-5", move || selected_card().is_some() && !hovering())
@@ -81,3 +80,4 @@ pub fn CardLandingView() -> impl IntoView {
         </div>
     }
 }
+

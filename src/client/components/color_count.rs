@@ -23,9 +23,5 @@ pub fn ColorCountView(color_counts: [(CardColor, Signal<usize>); 5]) -> impl Int
             }
         })
         .collect_view();
-    view! {
-        <div class="ml-2 flex gap-1 flex-items-center">
-            {color_stats}
-        </div>
-    }
+    view! { <div class="ml-2 flex gap-1 flex-items-center">{color_stats}</div> }
 }

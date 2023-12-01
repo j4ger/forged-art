@@ -21,14 +21,12 @@ pub(crate) struct GameState {
 pub(crate) enum GameStage {
     WaitingForNextCard(PlayerID),
     WaitingForDoubleTarget {
-        double_card: Card,
-        starter: PlayerID,
+        double_card: CardPair,
         current: PlayerID,
     },
     WaitingForMarkedPrice {
-        marked_card: Card,
         starter: PlayerID,
-        double: Option<CardPair>,
+        target: AuctionTarget,
     },
     AuctionInAction {
         state: AuctionState,
@@ -39,7 +37,7 @@ pub(crate) enum GameStage {
 pub(crate) type CardPair = (PlayerID, Card);
 pub(crate) type MoneyPair = (PlayerID, Money);
 
-#[derive(Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[derive(Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq, Eq)]
 #[archive(check_bytes)]
 pub(crate) enum AuctionTarget {
     Single(CardPair),
@@ -69,8 +67,7 @@ pub(crate) enum AuctionState {
     },
     Marked {
         starter: PlayerID,
-        current_player: PlayerID,
-        price: Money,
+        current: MoneyPair,
     },
 }
 
@@ -110,8 +107,9 @@ impl GameStage {
                 AuctionState::Free { .. } => true,
                 AuctionState::Circle { current_player, .. } => player_id == *current_player,
                 AuctionState::Fist { .. } => true,
-                AuctionState::Marked { current_player, .. } => player_id == *current_player,
+                AuctionState::Marked { current, .. } => player_id == current.0,
             },
         }
     }
 }
+
