@@ -1,5 +1,6 @@
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use anyhow::{bail, Context, Result};
-use chrono::{Duration, TimeZone, Utc};
 
 use crate::common::{
     card::{AuctionType, Card},
@@ -108,7 +109,7 @@ impl GameState {
                             target: AuctionTarget::Single((from.id, card)),
                         }
                     } else {
-                        let state = self.gen_auction_state(&card, from.id);
+                        let state = self.gen_auction_state(&card, from.id, self.players.len());
                         GameStage::AuctionInAction {
                             state,
                             target: AuctionTarget::Single((from.id, card)),
@@ -162,7 +163,8 @@ impl GameState {
                                     },
                                 }
                             } else {
-                                let state = self.gen_auction_state(&card, from.id);
+                                let state =
+                                    self.gen_auction_state(&card, from.id, self.players.len());
                                 GameStage::AuctionInAction {
                                     state,
                                     target: AuctionTarget::Double {
@@ -186,8 +188,8 @@ impl GameState {
                     let next = self.get_next_player_rounded(from.id);
                     GameStage::AuctionInAction {
                         state: AuctionState::Marked {
-                            starter: from.id,
-                            current: (next, money),
+                            current: next,
+                            price: (from.id, money),
                         },
                         target: *target,
                     }
@@ -202,13 +204,16 @@ impl GameState {
                         if money > highest.1 {
                             let highest = (from.id, money);
                             let calls = 0;
-                            let now = Utc::now();
-                            let time_end = now + Duration::seconds(3);
+                            let now = SystemTime::now();
+                            let time_end = now + Duration::from_secs(3);
                             GameStage::AuctionInAction {
                                 state: AuctionState::Free {
                                     host: *host,
                                     highest,
-                                    time_end: time_end.timestamp_millis(),
+                                    time_end: time_end
+                                        .duration_since(UNIX_EPOCH)
+                                        .unwrap()
+                                        .as_secs_f64(),
                                     calls,
                                 },
                                 target: *target,
@@ -217,12 +222,21 @@ impl GameState {
                             bail!("The current price is higher than your offer.");
                         }
                     }
-                    AuctionState::Fist { bids, .. } => {
+                    AuctionState::Fist {
+                        host,
+                        bids,
+                        action_taken,
+                    } => {
                         let mut bids = bids.clone();
                         *bids.get_mut(from.id).unwrap() = money;
-                        let can_end = !bids.contains(&(0 as Money));
+                        let mut action_taken = action_taken.clone();
+                        *action_taken.get_mut(from.id).unwrap() = true;
                         GameStage::AuctionInAction {
-                            state: AuctionState::Fist { bids, can_end },
+                            state: AuctionState::Fist {
+                                host: *host,
+                                bids,
+                                action_taken,
+                            },
                             target: *target,
                         }
                     }
@@ -282,22 +296,22 @@ impl GameState {
             }
             (GameStage::AuctionInAction { state, target }, ActionInput::MarkedReaction(inner)) => {
                 match state {
-                    AuctionState::Marked { starter, current } => {
-                        if current.0 == from.id {
-                            if *starter == current.0 {
-                                self.complete_transaction(*target, current.1, from.id)
+                    AuctionState::Marked { current, price } => {
+                        if *current == from.id {
+                            if price.0 == *current {
+                                self.complete_transaction(*target, price.1, from.id)
                             } else {
                                 match inner {
                                     MarkedReactionInner::Accept => {
-                                        self.test_enough_money(from.id, current.1)?;
-                                        self.complete_transaction(*target, current.1, from.id)
+                                        self.test_enough_money(from.id, price.1)?;
+                                        self.complete_transaction(*target, price.1, from.id)
                                     }
                                     MarkedReactionInner::Pass => {
-                                        let next = self.get_next_player_rounded(current.0);
+                                        let next = self.get_next_player_rounded(*current);
                                         GameStage::AuctionInAction {
                                             state: AuctionState::Marked {
-                                                starter: *starter,
-                                                current: (next, current.1),
+                                                current: next,
+                                                price: *price,
                                             },
                                             target: *target,
                                         }
@@ -321,20 +335,25 @@ impl GameState {
                     calls,
                 } => {
                     if *host == from.id {
-                        let time_end = Utc.timestamp_millis_opt(*time_end).single().unwrap();
-                        let now = Utc::now();
-                        if now > time_end {
+                        let now = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs_f64();
+                        if now > *time_end {
                             if *calls == 2 {
                                 self.complete_transaction(*target, highest.1, highest.0)
                             } else {
                                 let calls = calls + 1;
-                                let now = Utc::now();
-                                let time_end = now + Duration::seconds(3);
+                                let now = SystemTime::now();
+                                let time_end = now + Duration::from_secs(3);
                                 GameStage::AuctionInAction {
                                     state: AuctionState::Free {
                                         host: *host,
                                         highest: *highest,
-                                        time_end: time_end.timestamp_millis(),
+                                        time_end: time_end
+                                            .duration_since(UNIX_EPOCH)
+                                            .unwrap()
+                                            .as_secs_f64(),
                                         calls,
                                     },
                                     target: *target,
@@ -346,6 +365,21 @@ impl GameState {
                     } else {
                         bail!("Not your turn yet.");
                     }
+                }
+                AuctionState::Fist {
+                    host,
+                    bids,
+                    action_taken,
+                } => {
+                    if from.id != *host {
+                        bail!("Invalid action.");
+                    }
+                    if action_taken.contains(&false) {
+                        bail!("Somebody has not made their decision yet!");
+                    }
+                    let max = bids.iter().max().unwrap();
+                    let max_index = bids.iter().position(|bid| *bid == *max).unwrap();
+                    self.complete_transaction(*target, *max, max_index)
                 }
                 _ => {
                     bail!("Invalid action.");
@@ -360,15 +394,15 @@ impl GameState {
         Ok(())
     }
 
-    fn gen_auction_state(&self, card: &Card, from: PlayerID) -> AuctionState {
+    fn gen_auction_state(&self, card: &Card, from: PlayerID, player_count: usize) -> AuctionState {
         match card.ty {
             AuctionType::Free => {
-                let now = Utc::now();
-                let time_end = now + Duration::seconds(3);
+                let now = SystemTime::now();
+                let time_end = now + Duration::from_secs(3);
                 AuctionState::Free {
                     host: from,
                     highest: (from, 0 as Money),
-                    time_end: time_end.timestamp_millis(),
+                    time_end: time_end.duration_since(UNIX_EPOCH).unwrap().as_secs_f64(),
                     calls: 0,
                 }
             }
@@ -378,8 +412,9 @@ impl GameState {
                 highest: (from, 0 as Money),
             },
             AuctionType::Fist => AuctionState::Fist {
-                bids: vec![0 as Money; 5],
-                can_end: false,
+                host: from,
+                bids: vec![0 as Money; player_count],
+                action_taken: vec![false; player_count],
             },
             _ => unreachable!(),
         }

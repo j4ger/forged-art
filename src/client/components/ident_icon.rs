@@ -37,7 +37,7 @@ pub fn IdentIconView(#[prop(into)] name: MaybeSignal<String>) -> impl IntoView {
 #[component]
 pub fn PlayerIconView(
     #[prop(into)] id: MaybeSignal<PlayerID>,
-    #[prop(optional)] active: bool,
+    #[prop(into, optional)] active: MaybeSignal<bool>,
 ) -> impl IntoView {
     let game_state: RwSignal<GameState> = expect_context();
     let name = Signal::derive(move || game_state.get_untracked().players[id()].name.clone());

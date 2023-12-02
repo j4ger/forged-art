@@ -13,6 +13,7 @@ use crate::common::{
 };
 use leptos::*;
 use leptos_icons::{BiIcon::BiMoneyRegular, Icon};
+use leptos_use::{use_timestamp_with_controls, UseTimestampReturn};
 
 macro_rules! match_or {
     ($target:expr, $pattern:pat,$transform:expr,$fallback:expr) => {
@@ -76,10 +77,104 @@ pub fn ActionPanelView() -> impl IntoView {
         )
     });
 
+    let auction_target = create_read_slice(game_state, |state| {
+        match_or!(
+            state.stage,
+            GameStage::AuctionInAction { target, .. },
+            target,
+            AuctionTarget::placeholder()
+        )
+    });
+
+    let host = create_read_slice(game_state, |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(
+                state,
+                AuctionState::Free { host, .. } | AuctionState::Fist { host, .. },
+                *host,
+                PlayerID::placeholder()
+            ),
+            PlayerID::placeholder()
+        )
+    });
+
+    let free_calls = create_read_slice(game_state, |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(state, AuctionState::Free { calls, .. }, *calls, 0),
+            0
+        )
+    });
+
+    let free_time_end = create_read_slice(game_state, |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(state, AuctionState::Free { time_end, .. }, *time_end, 0.0),
+            0.0
+        )
+    });
+
+    let highest = create_read_slice(game_state, |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(
+                state,
+                AuctionState::Free { highest, .. } | AuctionState::Circle { highest, .. },
+                *highest,
+                MoneyPair::placeholder()
+            ),
+            MoneyPair::placeholder()
+        )
+    });
+
+    let marked_price = create_read_slice(game_state, |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(
+                state,
+                AuctionState::Marked { price, .. },
+                *price,
+                MoneyPair::placeholder()
+            ),
+            MoneyPair::placeholder()
+        )
+    });
+
+    let player_count = game_state.get_untracked().players.len();
+    let fist_action_taken = create_read_slice(game_state, move |state| {
+        match_or!(
+            &state.stage,
+            GameStage::AuctionInAction { state, .. },
+            match_or!(
+                state,
+                AuctionState::Fist { action_taken, .. },
+                action_taken.clone(),
+                vec![false; player_count]
+            ),
+            vec![false; player_count]
+        )
+    });
+
     view! {
         <WaitingForCardView/>
         <WaitingForDoubleTargetView double_card/>
         <WaitingForMarkedPriceView target=marked_card/>
+        <FreeAuctionView
+            target=auction_target
+            highest
+            host
+            calls=free_calls
+            time_end=free_time_end
+        />
+        <MarkedAuctionView target=auction_target price=marked_price/>
+        <CircleAuctionView target=auction_target current=highest/>
+        <FistAuctionView target=auction_target action_taken=fist_action_taken host/>
     }
 }
 
@@ -133,7 +228,7 @@ fn WaitingForDoubleTargetView(double_card: Signal<CardPair>) -> impl IntoView {
                 <DoubleCardView double_card/>
                 <div class="flex flex-items-center flex-col">
                     <PlayerIconView id=player.get_untracked().id active=true/>
-                    <span>"Your choice:"</span>
+                    <span>"YOU CHOOSE"</span>
                     <CardLandingView/>
                 </div>
             </Active>
@@ -205,9 +300,11 @@ fn WaitingForMarkedPriceView(#[prop(into)] target: Signal<AuctionTarget>) -> imp
 
 #[component]
 fn FreeAuctionView(
-    #[prop(into)] target: Signal<AuctionTarget>,
-    #[prop(into)] highest: Signal<MoneyPair>,
-    #[prop(into)] host: Signal<PlayerID>,
+    target: Signal<AuctionTarget>,
+    highest: Signal<MoneyPair>,
+    host: Signal<PlayerID>,
+    calls: Signal<u8>,
+    time_end: Signal<f64>,
 ) -> impl IntoView {
     let ws: Ws = expect_context();
 
@@ -216,7 +313,26 @@ fn FreeAuctionView(
     let player: RwSignal<Player> = expect_context();
     let is_host = Signal::derive(move || player().id == host());
 
-    // TODO: calls display
+    let (call_disabled, set_call_disabled) = create_signal(false);
+
+    let UseTimestampReturn {
+        timestamp,
+        pause,
+        resume,
+        ..
+    } = use_timestamp_with_controls();
+    let progress_value = Signal::derive(move || {
+        let value = time_end() * 1000.0 - timestamp();
+        if value > 0.0 {
+            set_call_disabled(true);
+            resume();
+            (3000.0 - value) as i32
+        } else {
+            set_call_disabled(false);
+            pause();
+            3000i32
+        }
+    });
 
     view! {
         <Panel
@@ -225,9 +341,25 @@ fn FreeAuctionView(
             inactive_message=""
         >
             <Active slot>
-                <PriceDisplayView pair=highest/>
-                <div class="flex flex-justify-center">
-                    <AuctionTargetView target/>
+                <AuctionTargetView target/>
+                <div class="flex flex-col flex-items-center">
+                    <div class="flex flex-items-center gap-6">
+                        <PriceDisplayView pair=highest/>
+                        <div class="flex flex-col p-1 rd-1 b-1 b-solid">
+                            <span class="novcento text-center">"Calls"</span>
+                            <span
+                                class="varela text-center font-size-6 font-800"
+                                class=("c-red", move || calls() == 2)
+                            >
+                                {calls}
+                            </span>
+                            <progress
+                                class="max-w-20 mb-0"
+                                max="3000"
+                                value=progress_value
+                            ></progress>
+                        </div>
+                    </div>
                     <MoneyInputView set_result=set_price/>
                 </div>
             </Active>
@@ -242,9 +374,148 @@ fn FreeAuctionView(
                 <Show when=is_host>
                     <button
                         class="contrast"
+                        prop:disabled=call_disabled
                         on:click=move |_| ws.get_value().send_game_input(ActionInput::Call)
                     >
                         "Make a Call"
+                    </button>
+                </Show>
+            </Action>
+        </Panel>
+    }
+}
+
+#[component]
+fn MarkedAuctionView(target: Signal<AuctionTarget>, price: Signal<MoneyPair>) -> impl IntoView {
+    let ws: Ws = expect_context();
+
+    view! {
+        <Panel
+            subview=SubView::MarkedAuction
+            active_message="Decide if you want to accept this offer of marked auction."
+            inactive_message="Waiting for other players' choice on marked auction."
+        >
+            <Active slot>
+                <AuctionTargetView target/>
+                <PriceDisplayView pair=price/>
+            </Active>
+            <Inactive slot>
+                <AuctionTargetView target/>
+                <PriceDisplayView pair=price/>
+            </Inactive>
+            <Action slot>
+                <button on:click=move |_| {
+                    ws.get_value()
+                        .send_game_input(ActionInput::MarkedReaction(MarkedReactionInner::Accept))
+                }>"Accept"</button>
+                <button
+                    class="secondary"
+                    on:click=move |_| {
+                        ws.get_value()
+                            .send_game_input(ActionInput::MarkedReaction(MarkedReactionInner::Pass))
+                    }
+                >
+
+                    "Pass"
+                </button>
+            </Action>
+        </Panel>
+    }
+}
+
+#[component]
+fn CircleAuctionView(target: Signal<AuctionTarget>, current: Signal<MoneyPair>) -> impl IntoView {
+    let ws: Ws = expect_context();
+
+    let (price, set_price) = create_signal(0 as Money);
+    view! {
+        <Panel
+            subview=SubView::CircleAuction
+            active_message="Make your offer in this circle auction."
+            inactive_message="Waiting for other players' choice in this circle auction"
+        >
+            <Active slot>
+                <AuctionTargetView target/>
+                <div class="flex flex-col flex-justify-center">
+                    <PriceDisplayView pair=current/>
+                    <MoneyInputView set_result=set_price/>
+                </div>
+            </Active>
+            <Inactive slot>
+                <AuctionTargetView target/>
+            </Inactive>
+            <Action slot>
+                <button on:click=move |_| {
+                    ws.get_value()
+                        .send_game_input(ActionInput::BidOptional(BidOptionalInner::Bid(price())))
+                }>"Make Offer"</button>
+                <button
+                    class="secondary"
+                    on:click=move |_| {
+                        ws.get_value()
+                            .send_game_input(ActionInput::BidOptional(BidOptionalInner::Pass))
+                    }
+                >
+
+                    "Pass"
+                </button>
+            </Action>
+        </Panel>
+    }
+}
+
+#[component]
+fn FistAuctionView(
+    target: Signal<AuctionTarget>,
+    action_taken: Signal<Vec<bool>>,
+    host: Signal<PlayerID>,
+) -> impl IntoView {
+    let ws: Ws = expect_context();
+
+    let (price, set_price) = create_signal(0 as Money);
+
+    let game_state: RwSignal<GameState> = expect_context();
+    let player_status = game_state
+        .get_untracked()
+        .players
+        .iter()
+        .enumerate()
+        .map(|(i, player)| {
+            let active = MaybeSignal::derive(move || !*action_taken().get(i).unwrap());
+            view! { <PlayerIconView id=player.id active/> }
+        })
+        .collect_view();
+
+    let player: RwSignal<Player> = expect_context();
+    let is_host = Signal::derive(move || player.get_untracked().id == host());
+
+    let complete_button_disabled = move || action_taken().contains(&false);
+
+    view! {
+        <Panel
+            subview=SubView::FistAuction
+            active_message="Make your offer in this fist auction."
+            inactive_message=""
+        >
+            <Active slot>
+                <AuctionTargetView target/>
+                <div class="flex flex-col flex-items-center">
+                    <div class="flex gap-3">{player_status.clone()}</div>
+                    <MoneyInputView set_result=set_price/>
+                </div>
+            </Active>
+            <Inactive slot>()</Inactive>
+            <Action slot>
+                <button on:click=move |_| {
+                    ws.get_value().send_game_input(ActionInput::Bid(price()))
+                }>"Make Offer"</button>
+                <Show when=is_host>
+                    <button
+                        class="contrast"
+                        prop:disabled=complete_button_disabled
+                        on:click=move |_| ws.get_value().send_game_input(ActionInput::Call)
+                    >
+                        "Complete Auction"
                     </button>
                 </Show>
             </Action>
@@ -337,7 +608,7 @@ fn AuctionTargetView(target: Signal<AuctionTarget>) -> impl IntoView {
         <Show when=show_double>
             <DoubleCardView double_card=double_target/>
         </Show>
-        <PlayerCardView card=single_target active=false message="Current card:"/>
+        <PlayerCardView card=single_target active=false message="CURRENT"/>
     }
 }
 
@@ -355,7 +626,7 @@ fn PlayerCardView(card: Signal<CardPair>, active: bool, message: &'static str) -
     view! {
         <div class="flex flex-items-center flex-col">
             <PlayerIconView id active/>
-            <span>{message}</span>
+            <span class="novcento">{message}</span>
             {card}
         </div>
     }

@@ -1,6 +1,6 @@
 use crate::client::websocket::WsInner;
 use crate::common::card::{AuctionType, Card, CardColor};
-use crate::common::game_state::{AuctionTarget, GameStage};
+use crate::common::game_state::{AuctionState, AuctionTarget, GameStage};
 use crate::common::player::Player;
 use crate::common::{game_state::GameState, server_message::ServerMessage};
 use leptos::*;
@@ -104,6 +104,12 @@ pub fn inject_game_context() {
 // TODO: remove this after test
 impl Default for GameState {
     fn default() -> Self {
+        #[cfg(feature = "ssr")]
+        let now = 114514 as f64;
+
+        #[cfg(not(feature = "ssr"))]
+        let now = js_sys::Date::now() / 1000.0;
+
         let dummy_card1 = Card {
             color: CardColor::Red,
             ty: AuctionType::Free,
@@ -231,12 +237,44 @@ impl Default for GameState {
             //     double_card: (0, dummy_card1),
             //     current: 0,
             // },
-            stage: GameStage::WaitingForMarkedPrice {
-                starter: 0,
-                target: AuctionTarget::Double {
-                    double_card: (1, dummy_card2),
-                    target_card: (0, dummy_card1),
+            // stage: GameStage::WaitingForMarkedPrice {
+            //     starter: 0,
+            //     target: AuctionTarget::Double {
+            //         double_card: (1, dummy_card2),
+            //         target_card: (0, dummy_card1),
+            //     },
+            // },
+            // stage: GameStage::AuctionInAction {
+            //     state: AuctionState::Free {
+            //         host: 1,
+            //         highest: (0, 114),
+            //         time_end: now + 3f64,
+            //         calls: 2,
+            //     },
+            //     target: AuctionTarget::Single((0, dummy_card1)),
+            // },
+            // stage: GameStage::AuctionInAction {
+            //     state: AuctionState::Marked {
+            //         price: (0, 114),
+            //         current: 0,
+            //     },
+            //     target: AuctionTarget::Single((0, dummy_card1)),
+            // },
+            // stage: GameStage::AuctionInAction {
+            //     state: AuctionState::Circle {
+            //         starter: 0,
+            //         current_player: 0,
+            //         highest: (0, 114),
+            //     },
+            //     target: AuctionTarget::Single((0, dummy_card1)),
+            // },
+            stage: GameStage::AuctionInAction {
+                state: AuctionState::Fist {
+                    host: 0,
+                    bids: vec![0, 0, 0, 0, 0],
+                    action_taken: vec![false, false, false, false, false],
                 },
+                target: AuctionTarget::Single((0, dummy_card1)),
             },
             current_round: 0,
             values: [

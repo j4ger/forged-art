@@ -24,11 +24,8 @@ pub fn MoneyInputView(set_result: WriteSignal<Money>) -> impl IntoView {
     // TODO: test on phone for keypad
     view! {
         <article class="container px-8 my-2">
-            <div class="mb-4 text-center">
-                <span>"max: " {max}</span>
-            </div>
             <div class="flex flex-justify-center">{icon_inputs}</div>
-            <div class="flex flex-items-center mt-10 mb-5 mx-2">
+            <div class="flex flex-items-center mt-10 mb-5 mx-2 gap-0.5">
                 <input
                     class="!mb-0"
                     type="number"
@@ -52,6 +49,13 @@ pub fn MoneyInputView(set_result: WriteSignal<Money>) -> impl IntoView {
                     prop:max=max
                     prop:min=0
                 />
+                <div
+                    class="flex flex-col px-2 b-1 b-solid rd-1 cursor-cell"
+                    on:click=move |_| set_value(max())
+                >
+                    <span class="novcento block text-center font-700">"MAX"</span>
+                    <span class="varela block text-center">{max}</span>
+                </div>
                 <a role="button" href="#" class="h-fit" on:click=move |_| set_value(0)>
                     "Reset"
                 </a>

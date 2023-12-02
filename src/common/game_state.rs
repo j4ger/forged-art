@@ -53,7 +53,7 @@ pub(crate) enum AuctionState {
     Free {
         host: PlayerID,
         highest: MoneyPair,
-        time_end: i64,
+        time_end: f64,
         calls: u8,
     },
     Circle {
@@ -62,12 +62,13 @@ pub(crate) enum AuctionState {
         highest: MoneyPair,
     },
     Fist {
+        host: PlayerID,
         bids: Vec<Money>,
-        can_end: bool,
+        action_taken: Vec<bool>,
     },
     Marked {
-        starter: PlayerID,
-        current: MoneyPair,
+        price: MoneyPair,
+        current: PlayerID,
     },
 }
 
@@ -107,7 +108,7 @@ impl GameStage {
                 AuctionState::Free { .. } => true,
                 AuctionState::Circle { current_player, .. } => player_id == *current_player,
                 AuctionState::Fist { .. } => true,
-                AuctionState::Marked { current, .. } => player_id == current.0,
+                AuctionState::Marked { current, .. } => player_id == *current,
             },
         }
     }
