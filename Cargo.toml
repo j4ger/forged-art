@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.6.4", optional = true }
+axum = { version = "0.6.4", optional = true, features = ["ws"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
 cfg-if = "1"
@@ -33,13 +33,16 @@ serde = { version = "1.0.192", features = ["derive"] }
 image = { version = "0.24.7", optional = true }
 md-5 = { version = "0.10.6", optional = true }
 leptos_icons = { version = "0.1.0", features = ["Bi", "BiMoneyRegular", "BiXRegular"] }
-dashmap = { version = "5.5.3", optional = true }
+dashmap = { version = "5.5.3", optional = true, features = ["inline"] }
 web-sys = { version = "0.3.64", features = [
     "DataTransfer", "WebSocket", "BinaryType", "EventListener", "EventTarget"
 ] }
 js-sys = { version = "0.3.64" }
-leptos-use = "0.8.2"
+leptos-use = { version = "0.9.0", features = ["serde"] }
 rkyv = { version = "0.7.42", features = ["validation"] }
+rand = { version = "0.8.5", features = ["nightly"], optional = true }
+futures = { version = "0.3.29", optional = true }
+once_cell = { version = "1.18.0", optional = true }
 
 [features]
 default = [ "ssr" ]
@@ -60,7 +63,10 @@ ssr = [
     "dep:base64",
     "dep:image",
     "dep:md-5",
-    "dep:dashmap"
+    "dep:dashmap",
+    "dep:rand",
+    "dep:futures",
+    "dep:once_cell"
 ]
 
 # Defines a size-optimized profile for the WASM bundle in release mode

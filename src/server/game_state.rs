@@ -7,18 +7,56 @@ use crate::common::{
     game_state::{AuctionState, AuctionTarget, GameStage, GameState, Money, ShouldEnd},
     input::{ActionInput, BidOptionalInner, CardID, MarkedReactionInner, PlayCardOptionalInner},
     player::{Player, PlayerID},
+    server_message::GameEvent,
 };
+
+use super::card::{pick, CARD_LIST};
 
 impl GameState {
     pub(self) fn mask(&self, player: PlayerID) -> GameState {
-        // TODO: mask stage(fist) money
+        let stage = self.stage.clone();
+        let stage = if let GameStage::AuctionInAction { ref state, target } = stage {
+            if let AuctionState::Fist {
+                host, action_taken, ..
+            } = state
+            {
+                GameStage::AuctionInAction {
+                    state: AuctionState::Fist {
+                        host: *host,
+                        bids: Vec::new(),
+                        action_taken: action_taken.clone(),
+                    },
+                    target,
+                }
+            } else {
+                stage
+            }
+        } else {
+            stage
+        };
+
+        // at this point player should only look for index 0 for their deck and balance
         GameState {
             deck: vec![self.deck.get(player).unwrap().clone()],
             money: vec![self.money.get(player).unwrap().clone()],
-            players: self.players.clone(),
-            stage: self.stage.clone(),
+            owned_cards: self.owned_cards.clone(),
+            players: self
+                .players
+                .clone()
+                .into_iter()
+                .map(|mut each| {
+                    if each.id == player {
+                        each
+                    } else {
+                        each.uuid = "".to_string();
+                        each
+                    }
+                })
+                .collect(),
+            stage,
             current_round: self.current_round,
             values: self.values,
+            pool: Vec::new(),
         }
     }
 
@@ -64,19 +102,18 @@ impl GameState {
         current: PlayerID,
     ) -> GameStage {
         *self.money.get_mut(current).unwrap() -= money;
-        let player = self.players.get_mut(current).unwrap();
         let owner;
         match target {
             AuctionTarget::Single((starter, card)) => {
-                player.owned_cards.push(card);
+                self.owned_cards[current].push(card);
                 owner = starter;
             }
             AuctionTarget::Double {
                 double_card: (_, double_card),
                 target_card: (starter, target_card),
             } => {
-                player.owned_cards.push(double_card);
-                player.owned_cards.push(target_card);
+                self.owned_cards[current].push(double_card);
+                self.owned_cards[current].push(target_card);
                 owner = starter;
             }
         }
@@ -87,32 +124,38 @@ impl GameState {
         GameStage::WaitingForNextCard(next)
     }
 
-    pub(self) fn process_input(&mut self, from: &mut Player, input: ActionInput) -> Result<()> {
+    // TODO: emit finer GameEvent
+    pub fn process_input(
+        &mut self,
+        from: PlayerID,
+        input: ActionInput,
+    ) -> Result<Option<GameEvent>> {
         let next_stage = match (&self.stage, input) {
             (GameStage::WaitingForNextCard(player_id), ActionInput::PlayCard(card_id)) => {
-                if *player_id == from.id {
-                    let card = play_card(&mut self.deck, from, card_id)?;
+                if *player_id == from {
+                    let card =
+                        play_card(&mut self.deck, self.players.get_mut(from).unwrap(), card_id)?;
                     if let ShouldEnd::Yes(_) = self.round_should_end() {
                         // TODO: end round && clean up
-                        return Ok(());
+                        return Ok(None);
                     }
 
                     if let AuctionType::Double = card.ty {
-                        let next = self.get_next_player_rounded(from.id);
+                        let next = self.get_next_player_rounded(from);
                         GameStage::WaitingForDoubleTarget {
-                            double_card: (from.id, card),
+                            double_card: (from, card),
                             current: next,
                         }
                     } else if let AuctionType::Marked = card.ty {
                         GameStage::WaitingForMarkedPrice {
-                            starter: from.id,
-                            target: AuctionTarget::Single((from.id, card)),
+                            starter: from,
+                            target: AuctionTarget::Single((from, card)),
                         }
                     } else {
-                        let state = self.gen_auction_state(&card, from.id, self.players.len());
+                        let state = self.gen_auction_state(&card, from, self.players.len());
                         GameStage::AuctionInAction {
                             state,
-                            target: AuctionTarget::Single((from.id, card)),
+                            target: AuctionTarget::Single((from, card)),
                         }
                     }
                 } else {
@@ -126,7 +169,7 @@ impl GameState {
                 },
                 ActionInput::PlayCardOptional(inner),
             ) => {
-                if *current == from.id {
+                if *current == from {
                     match inner {
                         PlayCardOptionalInner::Pass => {
                             match self.get_next_player(double_card.0, *current) {
@@ -136,40 +179,43 @@ impl GameState {
                                 },
                                 None => {
                                     //TODO: announce free get
-                                    let next = self.get_next_player_rounded(from.id);
+                                    let next = self.get_next_player_rounded(from);
                                     GameStage::WaitingForNextCard(next)
                                 }
                             }
                         }
                         PlayCardOptionalInner::Play(card_id) => {
-                            let card = self.get_card(from.id, card_id)?;
+                            let card = self.get_card(from, card_id)?;
                             if card.color != double_card.1.color {
                                 bail!("Wrong card color.");
                             }
                             if let AuctionType::Double = card.ty {
                                 bail!("Cannot set another double card as the target to a previous double card.");
                             }
-                            let card = play_card(&mut self.deck, from, card_id)?;
+                            let card = play_card(
+                                &mut self.deck,
+                                self.players.get_mut(from).unwrap(),
+                                card_id,
+                            )?;
                             if let ShouldEnd::Yes(_) = self.round_should_end() {
                                 // TODO: end round && clean up
-                                return Ok(());
+                                return Ok(None);
                             }
                             if let AuctionType::Marked = card.ty {
                                 GameStage::WaitingForMarkedPrice {
-                                    starter: from.id,
+                                    starter: from,
                                     target: AuctionTarget::Double {
                                         double_card: *double_card,
-                                        target_card: (from.id, card),
+                                        target_card: (from, card),
                                     },
                                 }
                             } else {
-                                let state =
-                                    self.gen_auction_state(&card, from.id, self.players.len());
+                                let state = self.gen_auction_state(&card, from, self.players.len());
                                 GameStage::AuctionInAction {
                                     state,
                                     target: AuctionTarget::Double {
                                         double_card: *double_card,
-                                        target_card: (from.id, card),
+                                        target_card: (from, card),
                                     },
                                 }
                             }
@@ -183,13 +229,13 @@ impl GameState {
                 GameStage::WaitingForMarkedPrice { starter, target },
                 ActionInput::AssignMarkedPrice(money),
             ) => {
-                if *starter == from.id {
-                    self.test_enough_money(from.id, money)?;
-                    let next = self.get_next_player_rounded(from.id);
+                if *starter == from {
+                    self.test_enough_money(from, money)?;
+                    let next = self.get_next_player_rounded(from);
                     GameStage::AuctionInAction {
                         state: AuctionState::Marked {
                             current: next,
-                            price: (from.id, money),
+                            price: (from, money),
                         },
                         target: *target,
                     }
@@ -198,11 +244,11 @@ impl GameState {
                 }
             }
             (GameStage::AuctionInAction { state, target }, ActionInput::Bid(money)) => {
-                self.test_enough_money(from.id, money)?;
+                self.test_enough_money(from, money)?;
                 match state {
                     AuctionState::Free { host, highest, .. } => {
                         if money > highest.1 {
-                            let highest = (from.id, money);
+                            let highest = (from, money);
                             let calls = 0;
                             let now = SystemTime::now();
                             let time_end = now + Duration::from_secs(3);
@@ -228,9 +274,9 @@ impl GameState {
                         action_taken,
                     } => {
                         let mut bids = bids.clone();
-                        *bids.get_mut(from.id).unwrap() = money;
+                        *bids.get_mut(from).unwrap() = money;
                         let mut action_taken = action_taken.clone();
-                        *action_taken.get_mut(from.id).unwrap() = true;
+                        *action_taken.get_mut(from).unwrap() = true;
                         GameStage::AuctionInAction {
                             state: AuctionState::Fist {
                                 host: *host,
@@ -252,7 +298,7 @@ impl GameState {
                         current_player,
                         highest,
                     } => {
-                        if *current_player == from.id {
+                        if *current_player == from {
                             match inner {
                                 BidOptionalInner::Pass => {
                                     if *current_player == *starter {
@@ -273,7 +319,7 @@ impl GameState {
                                     if money < highest.1 {
                                         bail!("The current price is higher than your offer.");
                                     }
-                                    let highest = (from.id, money);
+                                    let highest = (from, money);
                                     let next = self.get_next_player_rounded(*current_player);
                                     GameStage::AuctionInAction {
                                         state: AuctionState::Circle {
@@ -297,14 +343,14 @@ impl GameState {
             (GameStage::AuctionInAction { state, target }, ActionInput::MarkedReaction(inner)) => {
                 match state {
                     AuctionState::Marked { current, price } => {
-                        if *current == from.id {
+                        if *current == from {
                             if price.0 == *current {
-                                self.complete_transaction(*target, price.1, from.id)
+                                self.complete_transaction(*target, price.1, from)
                             } else {
                                 match inner {
                                     MarkedReactionInner::Accept => {
-                                        self.test_enough_money(from.id, price.1)?;
-                                        self.complete_transaction(*target, price.1, from.id)
+                                        self.test_enough_money(from, price.1)?;
+                                        self.complete_transaction(*target, price.1, from)
                                     }
                                     MarkedReactionInner::Pass => {
                                         let next = self.get_next_player_rounded(*current);
@@ -334,7 +380,7 @@ impl GameState {
                     time_end,
                     calls,
                 } => {
-                    if *host == from.id {
+                    if *host == from {
                         let now = SystemTime::now()
                             .duration_since(UNIX_EPOCH)
                             .unwrap()
@@ -371,7 +417,7 @@ impl GameState {
                     bids,
                     action_taken,
                 } => {
-                    if from.id != *host {
+                    if from != *host {
                         bail!("Invalid action.");
                     }
                     if action_taken.contains(&false) {
@@ -391,7 +437,7 @@ impl GameState {
         };
         self.stage = next_stage;
 
-        Ok(())
+        Ok(None)
     }
 
     fn gen_auction_state(&self, card: &Card, from: PlayerID, player_count: usize) -> AuctionState {
@@ -429,5 +475,37 @@ fn play_card(deck: &mut Vec<Vec<Card>>, from: &mut Player, card_id: CardID) -> R
         .context("No such card.")?;
     let card = player_deck.remove(index);
     Ok(card)
+}
+
+impl GameState {
+    // Vec<(uuid, name)>
+    pub fn new(players: Vec<(String, String)>) -> Self {
+        let player_count = players.len();
+        let players = players
+            .into_iter()
+            .enumerate()
+            .map(|(i, (uuid, name))| Player {
+                uuid,
+                id: i,
+                name,
+                connected: false,
+            })
+            .collect();
+        let mut pool = CARD_LIST.to_vec();
+        let deck = (0..player_count)
+            .map(|_| pick(&mut pool, 13 - player_count))
+            .collect();
+
+        Self {
+            players,
+            deck,
+            owned_cards: vec![Vec::new(); player_count],
+            money: vec![100; player_count],
+            stage: GameStage::WaitingForNextCard(0),
+            current_round: 0,
+            values: [[0; 5]; 5],
+            pool,
+        }
+    }
 }
 

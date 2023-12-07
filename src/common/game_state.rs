@@ -5,18 +5,20 @@ use super::{
 
 pub(crate) type Money = u32;
 
-#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[derive(Clone, Debug, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 #[archive(check_bytes)]
 pub(crate) struct GameState {
     pub(crate) deck: Vec<Vec<Card>>,
     pub(crate) money: Vec<Money>,
     pub(crate) players: Vec<Player>,
+    pub(crate) owned_cards: Vec<Vec<Card>>,
     pub(crate) stage: GameStage,
     pub(crate) current_round: usize,
     pub(crate) values: [[Money; 5]; 5],
+    pub(crate) pool: Vec<Card>,
 }
 
-#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[derive(Clone, Debug, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 #[archive(check_bytes)]
 pub(crate) enum GameStage {
     WaitingForNextCard(PlayerID),
@@ -37,7 +39,7 @@ pub(crate) enum GameStage {
 pub(crate) type CardPair = (PlayerID, Card);
 pub(crate) type MoneyPair = (PlayerID, Money);
 
-#[derive(Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize, PartialEq, Eq)]
 #[archive(check_bytes)]
 pub(crate) enum AuctionTarget {
     Single(CardPair),
@@ -47,7 +49,7 @@ pub(crate) enum AuctionTarget {
     },
 }
 
-#[derive(Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 #[archive(check_bytes)]
 pub(crate) enum AuctionState {
     Free {
@@ -81,8 +83,8 @@ pub(crate) enum ShouldEnd {
 impl GameState {
     pub(crate) fn round_should_end(&self) -> ShouldEnd {
         let mut counters = vec![0u32; 5];
-        for player in self.players.iter() {
-            for card in player.owned_cards.iter() {
+        for player in self.owned_cards.iter() {
+            for card in player.iter() {
                 if let Some(count) = counters.get_mut(card.color.index()) {
                     *count += 1;
                 }

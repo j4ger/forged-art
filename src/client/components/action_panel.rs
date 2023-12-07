@@ -38,7 +38,7 @@ enum SubView {
 #[component]
 pub fn ActionPanelView() -> impl IntoView {
     let game_state: RwSignal<GameState> = expect_context();
-    let player: RwSignal<Player> = expect_context();
+    let player: Signal<Player> = expect_context();
     let self_id = player.get_untracked().id;
     let active = Signal::derive(move || game_state().stage.is_player_active(self_id));
     provide_context(active);
@@ -216,7 +216,7 @@ fn WaitingForDoubleTargetView(double_card: Signal<CardPair>) -> impl IntoView {
     let ws: Ws = expect_context();
 
     let not_selected = move || selected_card().is_none();
-    let player: RwSignal<Player> = expect_context();
+    let player: Signal<Player> = expect_context();
 
     view! {
         <Panel
@@ -310,7 +310,7 @@ fn FreeAuctionView(
 
     let (price, set_price) = create_signal(0 as Money);
 
-    let player: RwSignal<Player> = expect_context();
+    let player: Signal<Player> = expect_context();
     let is_host = Signal::derive(move || player().id == host());
 
     let (call_disabled, set_call_disabled) = create_signal(false);
@@ -428,6 +428,7 @@ fn CircleAuctionView(target: Signal<AuctionTarget>, current: Signal<MoneyPair>) 
     let ws: Ws = expect_context();
 
     let (price, set_price) = create_signal(0 as Money);
+    create_effect(move |_| set_price(current().1));
     view! {
         <Panel
             subview=SubView::CircleAuction
@@ -486,7 +487,7 @@ fn FistAuctionView(
         })
         .collect_view();
 
-    let player: RwSignal<Player> = expect_context();
+    let player: Signal<Player> = expect_context();
     let is_host = Signal::derive(move || player.get_untracked().id == host());
 
     let complete_button_disabled = move || action_taken().contains(&false);

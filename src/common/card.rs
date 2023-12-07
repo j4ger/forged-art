@@ -34,20 +34,20 @@ pub(crate) enum CardColor {
 impl CardColor {
     pub(crate) fn index(&self) -> usize {
         match self {
-            Self::Red => 0,
-            Self::Green => 1,
-            Self::Blue => 2,
-            Self::Purple => 3,
+            Self::Red => 2,
+            Self::Green => 3,
+            Self::Blue => 1,
+            Self::Purple => 0,
             Self::Yellow => 4,
         }
     }
 
     pub(crate) fn from_index(index: usize) -> Self {
         match index {
-            0 => Self::Red,
-            1 => Self::Green,
-            2 => Self::Blue,
-            3 => Self::Purple,
+            2 => Self::Red,
+            3 => Self::Green,
+            1 => Self::Blue,
+            0 => Self::Purple,
             4 => Self::Yellow,
             _ => unreachable!(),
         }

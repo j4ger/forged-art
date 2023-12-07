@@ -14,11 +14,10 @@ pub fn GlobalInfoView() -> impl IntoView {
             let color = CardColor::from_index(i);
             let count = Signal::derive(move || {
                 game_state()
-                    .players
+                    .owned_cards
                     .iter()
-                    .map(move |player| {
-                        player
-                            .owned_cards
+                    .map(move |owned_cards| {
+                        owned_cards
                             .iter()
                             .filter(|card| card.color == color)
                             .count()

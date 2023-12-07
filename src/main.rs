@@ -1,13 +1,16 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
 async fn main() {
-    use std::net::{Ipv4Addr, SocketAddr};
-
-    use axum::{routing::post, Router};
+    use axum::{
+        routing::{get, post},
+        Router,
+    };
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use mart::client::app::*;
     use mart::fileserv::file_and_error_handler;
+    use mart::server::websocket::game_websocket;
+    use std::net::{Ipv4Addr, SocketAddr};
 
     simple_logger::init_with_level(log::Level::Warn).expect("couldn't initialize logging");
 
@@ -21,9 +24,12 @@ async fn main() {
     let addr = SocketAddr::new(std::net::IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 3000);
     let routes = generate_route_list(App);
 
+    let game_ws_url = format!("{}/:game_id/:uuid", GAME_WS_URL);
+
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
+        .route(&game_ws_url, get(game_websocket))
         .leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
         .with_state(leptos_options);

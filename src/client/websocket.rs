@@ -1,10 +1,13 @@
 #![cfg_attr(feature = "ssr", allow(unused_variables, unused_imports, dead_code))]
 // had to modify leptos-use/use_websocket, so that it works with rykv
 
-use crate::common::{input::ActionInput, server_message::ServerMessage};
+use crate::common::{
+    input::{ActionInput, GameInput},
+    server_message::ServerMessage,
+};
 use cfg_if::cfg_if;
 use leptos::*;
-use rkyv::from_bytes;
+use rkyv::{from_bytes, to_bytes};
 use wasm_bindgen::{closure::Closure, JsCast};
 use web_sys::{MessageEvent, WebSocket};
 
@@ -52,7 +55,8 @@ impl WsInner {
 
     pub fn send_game_input(&self, input: ActionInput) {
         if self.ready() {
-            let data = rkyv::to_bytes::<_, 4>(&input).unwrap();
+            let input = GameInput::Action(input);
+            let data = to_bytes::<_, 4>(&input).unwrap();
             self.send(data.as_slice());
         }
     }
@@ -123,3 +127,4 @@ fn detect_protocol() -> String {
         window().location().protocol().expect("Protocol not found").replace("http", "ws")
     }}
 }
+

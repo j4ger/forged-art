@@ -1,92 +1,68 @@
 use crate::client::websocket::WsInner;
 use crate::common::card::{AuctionType, Card, CardColor};
 use crate::common::game_state::{AuctionState, AuctionTarget, GameStage};
+use crate::common::input::GAME_WS_URL;
 use crate::common::player::Player;
 use crate::common::{game_state::GameState, server_message::ServerMessage};
+use crate::server::player::get_new_uuid;
 use leptos::*;
+use leptos_use::storage::{use_local_storage, JsonCodec};
+
+pub fn get_uuid() -> String {
+    let (uuid, set_uuid, _) = use_local_storage::<Option<String>, JsonCodec>("uuid");
+    match uuid.get_untracked() {
+        Some(uuid) => uuid,
+        None => {
+            spawn_local(async move {
+                let uuid = get_new_uuid().await.unwrap();
+                set_uuid(Some(uuid));
+            });
+            uuid.get_untracked().unwrap()
+        }
+    }
+}
 
 pub fn inject_game_context() {
     // WARN: think twice before changing this type, as many components are
     // relying on the type to fetch from the context API
-    let game_state = RwSignal::new(GameState::default());
+    let game_state = RwSignal::new(GameState::dummy());
     provide_context(game_state);
     // use it with:
     // let game_state: RwSignal<GameState> = expect_context();
 
-    let cards = vec![
-        Card {
-            color: CardColor::Purple,
-            ty: AuctionType::Free,
-            id: 1,
-        },
-        Card {
-            color: CardColor::Blue,
-            ty: AuctionType::Fist,
-            id: 2,
-        },
-        Card {
-            color: CardColor::Red,
-            ty: AuctionType::Circle,
-            id: 3,
-        },
-        Card {
-            color: CardColor::Yellow,
-            ty: AuctionType::Marked,
-            id: 4,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 5,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 6,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 7,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 8,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 9,
-        },
-        Card {
-            color: CardColor::Green,
-            ty: AuctionType::Double,
-            id: 10,
-        },
-    ];
-    let player = RwSignal::new(Player {
-        uuid: "114".into(),
-        id: 0,
-        name: "Player1".into(),
-        owned_cards: cards,
-        connected: true,
-    });
+    let uuid = get_uuid();
+    let player_id = game_state
+        .get_untracked()
+        .players
+        .iter()
+        .find(|player| player.uuid == uuid)
+        .unwrap()
+        .id;
+    let player = Signal::derive(move || game_state().players[player_id].clone());
     provide_context(player);
     // use it with:
-    // let player: RwSignal<Player> = expect_context();
+    // let player: Signal<Player> = expect_context();
 
-    let balance = Signal::derive(move || game_state().money[player().id]);
+    let balance = Signal::derive(move || game_state().money[player.get_untracked().id]);
     provide_context(balance);
     // use it with:
-    // let balance: RwSignal<Money> = expect_context();
+    // let balance: Signal<Money> = expect_context();
 
-    let ws = WsInner::new("/api/game");
+    let ws = WsInner::new(GAME_WS_URL);
     ws.set_onmessage(move |message| match message {
         ServerMessage::StateUpdate(state) => {
             game_state.set(state);
         }
         ServerMessage::GameEvent(event) => {
+            todo!()
+        }
+        ServerMessage::Disconnect => {
+            todo!()
+        }
+        ServerMessage::GameStop => {
+            todo!()
+        }
+        ServerMessage::StringMessage(message) => {
             todo!()
         }
     });
@@ -102,8 +78,8 @@ pub fn inject_game_context() {
 }
 
 // TODO: remove this after test
-impl Default for GameState {
-    fn default() -> Self {
+impl GameState {
+    fn dummy() -> Self {
         #[cfg(feature = "ssr")]
         let now = 114514 as f64;
 
@@ -175,55 +151,30 @@ impl Default for GameState {
                     uuid: 1.to_string(),
                     id: 0,
                     name: "Player0".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Red,
-                        ty: AuctionType::Free,
-                        id: 0,
-                    }],
                     connected: true,
                 },
                 Player {
                     uuid: 2.to_string(),
                     id: 1,
                     name: "Player1".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Green,
-                        ty: AuctionType::Circle,
-                        id: 1,
-                    }],
                     connected: true,
                 },
                 Player {
                     uuid: 3.to_string(),
                     id: 2,
                     name: "Player2".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Blue,
-                        ty: AuctionType::Fist,
-                        id: 2,
-                    }],
                     connected: true,
                 },
                 Player {
                     uuid: 4.to_string(),
                     id: 3,
                     name: "Player3".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Purple,
-                        ty: AuctionType::Double,
-                        id: 3,
-                    }],
                     connected: true,
                 },
                 Player {
                     uuid: 5.to_string(),
                     id: 4,
                     name: "Player4".into(),
-                    owned_cards: vec![Card {
-                        color: CardColor::Yellow,
-                        ty: AuctionType::Marked,
-                        id: 4,
-                    }],
                     connected: true,
                 },
             ],
@@ -283,6 +234,34 @@ impl Default for GameState {
                 [30, 20, 10, 0, 0],
                 [30, 20, 10, 0, 0],
                 [30, 20, 10, 0, 0],
+            ],
+            pool: Vec::new(),
+            owned_cards: vec![
+                vec![Card {
+                    color: CardColor::Yellow,
+                    ty: AuctionType::Marked,
+                    id: 1,
+                }],
+                vec![Card {
+                    color: CardColor::Yellow,
+                    ty: AuctionType::Marked,
+                    id: 2,
+                }],
+                vec![Card {
+                    color: CardColor::Yellow,
+                    ty: AuctionType::Marked,
+                    id: 3,
+                }],
+                vec![Card {
+                    color: CardColor::Yellow,
+                    ty: AuctionType::Marked,
+                    id: 4,
+                }],
+                vec![Card {
+                    color: CardColor::Yellow,
+                    ty: AuctionType::Marked,
+                    id: 5,
+                }],
             ],
         }
     }

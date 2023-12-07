@@ -2,6 +2,7 @@ use cfg_if::cfg_if;
 pub mod client;
 pub mod common;
 pub mod fileserv;
+#[cfg(feature = "ssr")]
 pub mod server;
 
 cfg_if! { if #[cfg(feature = "hydrate")] {
@@ -18,3 +19,4 @@ cfg_if! { if #[cfg(feature = "hydrate")] {
         leptos::mount_to_body(App);
     }
 }}
+
