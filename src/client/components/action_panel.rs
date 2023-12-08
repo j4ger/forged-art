@@ -172,7 +172,7 @@ pub fn ActionPanelView() -> impl IntoView {
             calls=free_calls
             time_end=free_time_end
         />
-        <MarkedAuctionView target=auction_target price=marked_price/>
+        <MarkedAuctionView host target=auction_target price=marked_price/>
         <CircleAuctionView target=auction_target current=highest/>
         <FistAuctionView target=auction_target action_taken=fist_action_taken host/>
     }
@@ -386,9 +386,15 @@ fn FreeAuctionView(
 }
 
 #[component]
-fn MarkedAuctionView(target: Signal<AuctionTarget>, price: Signal<MoneyPair>) -> impl IntoView {
+fn MarkedAuctionView(
+    host: Signal<PlayerID>,
+    target: Signal<AuctionTarget>,
+    price: Signal<MoneyPair>,
+) -> impl IntoView {
     let ws: Ws = expect_context();
 
+    let player: Signal<Player> = expect_context();
+    let self_id = player.get_untracked().id;
     view! {
         <Panel
             subview=SubView::MarkedAuction
@@ -406,18 +412,24 @@ fn MarkedAuctionView(target: Signal<AuctionTarget>, price: Signal<MoneyPair>) ->
             <Action slot>
                 <button on:click=move |_| {
                     ws.get_value()
-                        .send_game_input(ActionInput::MarkedReaction(MarkedReactionInner::Accept))
+                        .send_game_input(
+                            ActionInput::MarkedReaction(MarkedReactionInner::Accept),
+                        )
                 }>"Accept"</button>
-                <button
-                    class="secondary"
-                    on:click=move |_| {
-                        ws.get_value()
-                            .send_game_input(ActionInput::MarkedReaction(MarkedReactionInner::Pass))
-                    }
-                >
+                <Show when=move || host() != self_id>
+                    <button
+                        class="secondary"
+                        on:click=move |_| {
+                            ws.get_value()
+                                .send_game_input(
+                                    ActionInput::MarkedReaction(MarkedReactionInner::Pass),
+                                )
+                        }
+                    >
 
-                    "Pass"
-                </button>
+                        "Pass"
+                    </button>
+                </Show>
             </Action>
         </Panel>
     }

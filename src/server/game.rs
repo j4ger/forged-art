@@ -31,7 +31,7 @@ pub fn start_game(players: Vec<(String, String)>, game_id: String) {
                     write
                         .send((
                             Some(player_id),
-                            ServerMessage::StateUpdate(game_state.clone()),
+                            ServerMessage::StateUpdate(game_state.mask(player_id)),
                         ))
                         .unwrap();
                 }
@@ -71,6 +71,9 @@ pub fn start_game(players: Vec<(String, String)>, game_id: String) {
                         if let Some(event) = inner {
                             write.send((None, ServerMessage::GameEvent(event))).unwrap();
                         }
+                        write
+                            .send((None, ServerMessage::StateUpdate(game_state.mask(player_id))))
+                            .unwrap();
                     }
                     Err(message) => {
                         write

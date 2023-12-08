@@ -1,8 +1,15 @@
-pub(crate) mod card;
-pub(crate) mod game;
-pub(crate) mod game_state;
-pub(crate) mod identicon;
-pub(crate) mod main;
-pub(crate) mod player;
+pub mod identicon;
+pub mod player;
+
+#[cfg(feature = "ssr")]
 pub mod websocket;
+
+#[cfg(feature = "ssr")]
+pub mod game;
+
+#[cfg(feature = "ssr")]
+pub mod card;
+
+#[cfg(feature = "ssr")]
+pub mod game_state;
 

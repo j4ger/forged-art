@@ -13,7 +13,7 @@ use crate::common::{
 use super::card::{pick, CARD_LIST};
 
 impl GameState {
-    pub(self) fn mask(&self, player: PlayerID) -> GameState {
+    pub fn mask(&self, player: PlayerID) -> GameState {
         let stage = self.stage.clone();
         let stage = if let GameStage::AuctionInAction { ref state, target } = stage {
             if let AuctionState::Fist {
@@ -130,6 +130,7 @@ impl GameState {
         from: PlayerID,
         input: ActionInput,
     ) -> Result<Option<GameEvent>> {
+        let mut event = None;
         let next_stage = match (&self.stage, input) {
             (GameStage::WaitingForNextCard(player_id), ActionInput::PlayCard(card_id)) => {
                 if *player_id == from {
@@ -302,6 +303,11 @@ impl GameState {
                             match inner {
                                 BidOptionalInner::Pass => {
                                     if *current_player == *starter {
+                                        event = Some(GameEvent::AuctionComplete {
+                                            target: *target,
+                                            buyer: *highest,
+                                            seller: *starter,
+                                        });
                                         self.complete_transaction(*target, highest.1, highest.0)
                                     } else {
                                         let next = self.get_next_player_rounded(*current_player);
@@ -320,14 +326,23 @@ impl GameState {
                                         bail!("The current price is higher than your offer.");
                                     }
                                     let highest = (from, money);
-                                    let next = self.get_next_player_rounded(*current_player);
-                                    GameStage::AuctionInAction {
-                                        state: AuctionState::Circle {
-                                            starter: *starter,
-                                            current_player: next,
-                                            highest,
-                                        },
-                                        target: *target,
+                                    if *current_player == *starter {
+                                        event = Some(GameEvent::AuctionComplete {
+                                            target: *target,
+                                            buyer: highest,
+                                            seller: *starter,
+                                        });
+                                        self.complete_transaction(*target, highest.1, highest.0)
+                                    } else {
+                                        let next = self.get_next_player_rounded(*current_player);
+                                        GameStage::AuctionInAction {
+                                            state: AuctionState::Circle {
+                                                starter: *starter,
+                                                current_player: next,
+                                                highest,
+                                            },
+                                            target: *target,
+                                        }
                                     }
                                 }
                             }
@@ -345,11 +360,21 @@ impl GameState {
                     AuctionState::Marked { current, price } => {
                         if *current == from {
                             if price.0 == *current {
+                                event = Some(GameEvent::AuctionComplete {
+                                    target: *target,
+                                    buyer: (*current, price.1),
+                                    seller: price.0,
+                                });
                                 self.complete_transaction(*target, price.1, from)
                             } else {
                                 match inner {
                                     MarkedReactionInner::Accept => {
                                         self.test_enough_money(from, price.1)?;
+                                        event = Some(GameEvent::AuctionComplete {
+                                            target: *target,
+                                            buyer: (*current, price.1),
+                                            seller: price.0,
+                                        });
                                         self.complete_transaction(*target, price.1, from)
                                     }
                                     MarkedReactionInner::Pass => {
@@ -387,6 +412,11 @@ impl GameState {
                             .as_secs_f64();
                         if now > *time_end {
                             if *calls == 2 {
+                                event = Some(GameEvent::AuctionComplete {
+                                    target: *target,
+                                    buyer: *highest,
+                                    seller: *host,
+                                });
                                 self.complete_transaction(*target, highest.1, highest.0)
                             } else {
                                 let calls = calls + 1;
@@ -425,6 +455,11 @@ impl GameState {
                     }
                     let max = bids.iter().max().unwrap();
                     let max_index = bids.iter().position(|bid| *bid == *max).unwrap();
+                    event = Some(GameEvent::AuctionComplete {
+                        target: *target,
+                        buyer: (max_index, *max),
+                        seller: *host,
+                    });
                     self.complete_transaction(*target, *max, max_index)
                 }
                 _ => {
@@ -437,7 +472,7 @@ impl GameState {
         };
         self.stage = next_stage;
 
-        Ok(None)
+        Ok(event)
     }
 
     fn gen_auction_state(&self, card: &Card, from: PlayerID, player_count: usize) -> AuctionState {

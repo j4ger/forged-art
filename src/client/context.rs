@@ -8,20 +8,18 @@ use crate::server::player::get_new_uuid;
 use leptos::*;
 use leptos_use::storage::{use_local_storage, JsonCodec};
 
-pub fn get_uuid() -> String {
+pub fn get_uuid() -> Signal<Option<String>> {
     let (uuid, set_uuid, _) = use_local_storage::<Option<String>, JsonCodec>("uuid");
-    match uuid.get_untracked() {
-        Some(uuid) => uuid,
-        None => {
-            spawn_local(async move {
-                let uuid = get_new_uuid().await.unwrap();
-                set_uuid(Some(uuid));
-            });
-            uuid.get_untracked().unwrap()
-        }
+    if uuid.get_untracked().is_none() {
+        spawn_local(async move {
+            let uuid = get_new_uuid().await.unwrap();
+            set_uuid(Some(uuid));
+        });
     }
+    uuid
 }
 
+#[cfg(not(feature = "ssr"))]
 pub fn inject_game_context() {
     // WARN: think twice before changing this type, as many components are
     // relying on the type to fetch from the context API
@@ -35,7 +33,7 @@ pub fn inject_game_context() {
         .get_untracked()
         .players
         .iter()
-        .find(|player| player.uuid == uuid)
+        .find(|player| player.uuid == uuid().unwrap())
         .unwrap()
         .id;
     let player = Signal::derive(move || game_state().players[player_id].clone());
@@ -75,6 +73,25 @@ pub fn inject_game_context() {
     provide_context(dragging);
     // use it with:
     // let dragging: RwSignal<bool> = expect_context();
+}
+
+#[cfg(feature = "ssr")]
+pub fn inject_game_context() {
+    let game_state = RwSignal::new(GameState::dummy());
+    provide_context(game_state);
+
+    let player = Signal::derive(move || game_state().players[0].clone());
+    provide_context(player);
+
+    let balance = Signal::derive(move || game_state().money[player.get_untracked().id]);
+    provide_context(balance);
+
+    let ws = WsInner::new(GAME_WS_URL);
+    let ws = store_value(ws);
+    provide_context(ws);
+
+    let dragging: RwSignal<bool> = RwSignal::new(false);
+    provide_context(dragging);
 }
 
 // TODO: remove this after test
@@ -148,7 +165,7 @@ impl GameState {
             ],
             players: vec![
                 Player {
-                    uuid: 1.to_string(),
+                    uuid: "pxwjh5L9FXOl".to_string(),
                     id: 0,
                     name: "Player0".into(),
                     connected: true,

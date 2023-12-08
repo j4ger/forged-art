@@ -8,6 +8,7 @@ async fn main() {
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
     use mart::client::app::*;
+    use mart::common::input::GAME_WS_URL;
     use mart::fileserv::file_and_error_handler;
     use mart::server::websocket::game_websocket;
     use std::net::{Ipv4Addr, SocketAddr};
@@ -29,6 +30,7 @@ async fn main() {
     // build our application with a route
     let app = Router::new()
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
+        .route("/api/*fn_name", get(leptos_axum::handle_server_fns))
         .route(&game_ws_url, get(game_websocket))
         .leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
