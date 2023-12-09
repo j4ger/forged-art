@@ -1,5 +1,5 @@
 use super::{
-    card::{Card, CardColor},
+    card::Card,
     player::{Player, PlayerID},
 };
 
@@ -16,6 +16,7 @@ pub(crate) struct GameState {
     pub(crate) current_round: usize,
     pub(crate) values: [[Money; 5]; 5],
     pub(crate) pool: Vec<Card>,
+    pub(crate) ended: bool,
 }
 
 #[derive(Clone, Debug, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
@@ -76,12 +77,13 @@ pub(crate) enum AuctionState {
 
 #[derive(Clone, Copy)]
 pub(crate) enum ShouldEnd {
-    Yes(CardColor),
+    RoundEnd,
+    GameEnd,
     No,
 }
 
 impl GameState {
-    pub(crate) fn round_should_end(&self) -> ShouldEnd {
+    pub(crate) fn should_end(&self) -> ShouldEnd {
         let mut counters = vec![0u32; 5];
         for player in self.owned_cards.iter() {
             for card in player.iter() {
@@ -91,9 +93,12 @@ impl GameState {
             }
         }
 
-        if let Some(position) = counters.iter().position(|x| x == &5) {
-            let color = CardColor::from_index(position);
-            ShouldEnd::Yes(color)
+        if counters.iter().find(|count| **count == 5).is_some() {
+            if self.current_round == 3 {
+                ShouldEnd::GameEnd
+            } else {
+                ShouldEnd::RoundEnd
+            }
         } else {
             ShouldEnd::No
         }

@@ -412,9 +412,7 @@ fn MarkedAuctionView(
             <Action slot>
                 <button on:click=move |_| {
                     ws.get_value()
-                        .send_game_input(
-                            ActionInput::MarkedReaction(MarkedReactionInner::Accept),
-                        )
+                        .send_game_input(ActionInput::MarkedReaction(MarkedReactionInner::Accept))
                 }>"Accept"</button>
                 <Show when=move || host() != self_id>
                     <button
@@ -607,7 +605,7 @@ fn Panel(
 // fallback=panel_slot.inactive_content
 
 #[component]
-fn AuctionTargetView(target: Signal<AuctionTarget>) -> impl IntoView {
+pub fn AuctionTargetView(#[prop(into)] target: MaybeSignal<AuctionTarget>) -> impl IntoView {
     let single_target = Signal::derive(move || match target() {
         AuctionTarget::Single(inner) => inner,
         AuctionTarget::Double { target_card, .. } => target_card,

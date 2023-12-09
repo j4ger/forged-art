@@ -1,5 +1,6 @@
 pub mod identicon;
 pub mod player;
+pub mod room;
 
 #[cfg(feature = "ssr")]
 pub mod websocket;

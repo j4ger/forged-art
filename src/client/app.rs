@@ -40,4 +40,6 @@ pub fn App() -> impl IntoView {
 // TODO: fix warnings prompted in console.log
 // TODO: use leptos_animation for text animation
 // TODO: hijack right-click menu
+// TODO: use Signal::with to avoid cloning
+// TODO: graceful shutdown that writes all game states to database
 

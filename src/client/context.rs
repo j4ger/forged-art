@@ -23,6 +23,8 @@ pub fn get_uuid() -> Signal<Option<String>> {
 pub fn inject_game_context() {
     // WARN: think twice before changing this type, as many components are
     // relying on the type to fetch from the context API
+
+    use super::components::in_game::EventModal;
     let game_state = RwSignal::new(GameState::dummy());
     provide_context(game_state);
     // use it with:
@@ -41,10 +43,12 @@ pub fn inject_game_context() {
     // use it with:
     // let player: Signal<Player> = expect_context();
 
-    let balance = Signal::derive(move || game_state().money[player.get_untracked().id]);
+    let balance = Signal::derive(move || game_state().money[0]);
     provide_context(balance);
     // use it with:
     // let balance: Signal<Money> = expect_context();
+
+    let modal: RwSignal<EventModal> = expect_context();
 
     let ws = WsInner::new(GAME_WS_URL);
     ws.set_onmessage(move |message| match message {
@@ -52,7 +56,7 @@ pub fn inject_game_context() {
             game_state.set(state);
         }
         ServerMessage::GameEvent(event) => {
-            todo!()
+            modal.update(|modal| modal.show(event));
         }
         ServerMessage::Disconnect => {
             todo!()
@@ -280,6 +284,7 @@ impl GameState {
                     id: 5,
                 }],
             ],
+            ended: false,
         }
     }
 }

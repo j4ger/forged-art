@@ -6,9 +6,13 @@ use crate::common::{
 };
 use tokio::sync::{broadcast, mpsc};
 
-pub fn start_game(players: Vec<(String, String)>, game_id: String) {
+pub fn start_game(players: Vec<(String, String)>, game_id: String, game_state: Option<GameState>) {
     force_stop_game(&game_id);
-    let mut game_state = GameState::new(players.clone());
+    let mut game_state = if let Some(existing) = game_state {
+        existing
+    } else {
+        GameState::new(players.clone())
+    };
 
     let (mpsc_sender, mut read) = mpsc::unbounded_channel();
     let (write, _) = broadcast::channel(5);
@@ -69,7 +73,14 @@ pub fn start_game(players: Vec<(String, String)>, game_id: String) {
                 GameInput::Action(input) => match game_state.process_input(player_id, input) {
                     Ok(inner) => {
                         if let Some(event) = inner {
-                            write.send((None, ServerMessage::GameEvent(event))).unwrap();
+                            if let GameEvent::GameEnd = &event {
+                                write.send((None, ServerMessage::GameEvent(event))).unwrap();
+                                game_state.ended = true;
+                                return;
+                                // TODO: write state to store
+                            } else {
+                                write.send((None, ServerMessage::GameEvent(event))).unwrap();
+                            }
                         }
                         write
                             .send((None, ServerMessage::StateUpdate(game_state.mask(player_id))))

@@ -23,5 +23,7 @@ pub enum GameEvent {
         buyer: MoneyPair,
         seller: PlayerID,
     },
+    RoundEnd,
+    GameEnd,
 }
 

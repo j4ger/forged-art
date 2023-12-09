@@ -6,12 +6,13 @@ use leptos_icons::{BiIcon::BiMoneyRegular, Icon};
 pub enum Action {
     Increase,
     Decrease,
+    None,
 }
 
 #[component]
 pub fn MoneyDisplayView(
     value: Money,
-    #[prop(default=Action::Decrease)] action: Action,
+    #[prop(default=Action::None)] action: Action,
     #[prop(optional, into)] residual: Option<Signal<Money>>,
 ) -> impl IntoView {
     let setter: WriteSignal<Money> = expect_context();
@@ -23,6 +24,7 @@ pub fn MoneyDisplayView(
                 setter.update(|count| *count += value)
             }
         }
+        Action::None => {}
     };
 
     view! {
